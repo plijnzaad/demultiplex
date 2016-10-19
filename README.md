@@ -30,9 +30,9 @@ To start using it, do
 
   git clone https://github.com/plijnzaad/demultiplex.git
 
-This will create a directory =demultiplex=. Make sure that directory is on your `$PATH`. 
+This will create a directory `demultiplex`. Make sure that directory is on your `$PATH`. 
 If you use the `mismatch.pm` library, make sure that directory is part of your `$PERLLIB`.
-To get a 'usage message', run the script with a -h option.
+To get a 'usage message', run the script with a `-h` flag.
 
 This code used to reside in https://plijnzaad@github.com/plijnzaad/phtools, subdirectory `ngs/demultiplex`
 
