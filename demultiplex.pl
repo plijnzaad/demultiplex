@@ -19,7 +19,7 @@ use vars qw($opt_h $opt_b $opt_m $opt_p $opt_o);
 
 my $Usage="Usage:
 
-   ... | $0 -b barcodes.txt [-m mismatches] [ -p outputprefix ] [ -o outputdir ] 
+   zcat bigfile.fastq.gz | $0 -b barcodes.txt [-m mismatches] [ -p outputprefix ] [ -o outputdir ] 
 
 NOTE: the script does *not* check if mismatched barcodes are unambiguous!
 Use edit-distance.pl and/or edit-distance-matrix.pl for that.
