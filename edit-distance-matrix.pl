@@ -53,9 +53,8 @@ for(my $i=0; $i<$n; $i++) {
   print "$a\t";
   for(my $j=0; $j<$n; $j++) { 
     my ($b, $y)=($names->[$j], $codes->{$names->[$j]});
-    print distance($x,$y), "\t"; ### Levenshtein edit distance, but we don't allow indels
-###    print hammingdistance($x,$y), "\t";
+###    print distance($x,$y), "\t"; ### Levenshtein edit distance, but we don't allow indels
+    print hammingdistance($x,$y), "\t";
   }                                     # for $j
   print "\n";
 }                                       # for $i
-
