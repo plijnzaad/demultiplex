@@ -4,10 +4,14 @@
 use strict;
 use Getopt::Std;
 use FileHandle;
+use File::Basename;
 
 use mismatch;
 
 use vars qw($opt_h $opt_b $opt_m $opt_p $opt_o $opt_e $opt_g);
+
+my $version=getversion($0);
+my @args=@ARGV;
 
 $opt_e=  '^cbc=([ACTGN]+)';
 
@@ -41,6 +45,8 @@ if ( !getopts("b:p:o:m:g:h") || ! $opt_b ||  $opt_h ) {
     die $Usage; 
 }
 
+warn "Running $0, version $version, with args @args\n";
+
 my  $allowed_mismatches = 1;
 $allowed_mismatches = $opt_m if defined($opt_m);  # 0 also possible, meaning no mismatched allowed
 
@@ -71,6 +77,8 @@ my $nunknown=0;
 
 my $barcode_re = qr/$opt_e/;
 
+my $nrefseqs=0;
+my $warned=0;
 
 ## lastly, process the actual input:
 RECORD:
@@ -83,13 +91,18 @@ while(1) {
     }
     next RECORD;
   }
+  ### @@@FIX: at this point we should insert add a @PG record to the bam headers ...
+
+  if ( $nrefseqs ==0 && !$warned++ ) {
+    warn "*** expected to find reference sequences in the sam headers (the \@SQ records)\n";
+    warn "*** be sure to use output from samtools -h\n";
+  }
 
 ## e.g. ^NS500413:188:H3M3WBGXY:1:11101:10124:1906:cbc=TACCTGTC:umi=TTCGAC \t 0 \t GLUL__chr1 \t 3255 \t 25 \t 76M \t 
   my($qname,$flag, $rname, $pos, $mapq, $cigar, $rnext, $pnext, $tlen,
      $seq, $qual, @optionals)=split("\t", $record);
 
-  my(@parts)=
-      my $foundcode;
+  my $foundcode;
   for my $part (split(":", $qname)) {
     $foundcode=$1 if $part =~ $barcode_re;
   }
@@ -190,3 +203,13 @@ sub read_groups {
   close(FILE);
   $groups;
 }
+
+sub getversion {
+  my($path)=@_;
+  my ($fullpath)=`which $path`;
+  my ($script,$dir) = fileparse($fullpath);
+  my $version=`cd $dir && git describe --match 'v[0-9]*' --tags --dirty`;
+  chomp($version);
+  $version='UNKNOWN' unless $version;
+  $version;
+}                                       # getversion
