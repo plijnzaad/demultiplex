@@ -50,7 +50,6 @@ my $nunknown=0;
 RECORD:
 while(1) { 
   my $record=<>;
-  last RECORD if (eof(STDIN) || !$record);
   ### e.g.:  ^@NS500413:172:HVFHWBGXX:1:11101:4639:1062 1:N:0:CCGTCCAT$
   my ($foundcode)=(split(':', $record))[-1];
   $foundcode =~ s/[\n\r]*$//;
@@ -84,6 +83,7 @@ while(1) {
     die "should not reach this point";
   }                                     # CASE
   $filehandles->{$lib}->print($record);
+  last RECORD if (eof(STDIN) || !$record);
 }                                       # RECORD
 close_outfiles($filehandles);
 
