@@ -78,6 +78,7 @@ while(1) {
     for my $lib (keys %$filehandles) { 
       $filehandles->{$lib}->print($record);
     }
+    next RECORD;
   }
 
 ## e.g. ^NS500413:188:H3M3WBGXY:1:11101:10124:1906:cbc=TACCTGTC:umi=TTCGAC \t 0 \t GLUL__chr1 \t 3255 \t 25 \t 76M \t 
