@@ -20,6 +20,9 @@ barcode is expected in the QNAME (first field), and extracted from it
 using a parenthesized regular expression indicated by the -e option.
 As with the original demultiplex script, mismatches can be allowed
 using the -m option.
+
+Output files are written in bam format, with all the original headers. 
+
 For format of the barcode file, see testdata/testbarcodes.txt.
 
 To test, do e.g. 
@@ -153,10 +156,10 @@ sub open_outfiles {
   my $fhs={};
 
   for my $lib (@libs) { 
-    my $name=sprintf("%s.sam", $lib);
+    my $name=sprintf("%s.bam", $lib);
     $name="$opt_p$name" if $opt_p;
     $name="$opt_o/$name" if $opt_o;
-    my $fh = FileHandle->new(" > $name") or die "library $lib, file $name: $! (did you create the output directory?)";
+    my $fh = FileHandle->new(" | samtools view - -h -b > $name") or die "library $lib, file $name: $! (did you create the output directory?)";
     warn "Creating/overwriting file $name ...\n";
     $fhs->{$lib}=$fh;
   }
@@ -166,7 +169,7 @@ sub open_outfiles {
 sub close_outfiles {
   my($fhs)=@_;
   for my $lib (keys %$fhs) {
-    $fhs->{$lib}->close() or die "could not close demultiplexed file for library $lib; investigate";
+    $fhs->{$lib}->close() or die "could not close (or open?) demultiplexed bam file for library $lib; investigate";
   }
 }
 
