@@ -89,6 +89,7 @@ while(1) {
     for my $lib (keys %$filehandles) { 
       $filehandles->{$lib}->print($record);
     }
+    $nrefseqs += ($record =~ /^\@SQ/);
     next RECORD;
   }
   ### @@@FIX: at this point we should insert add a @PG record to the bam headers ...
