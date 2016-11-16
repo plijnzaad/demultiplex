@@ -86,6 +86,17 @@ sub rescue {
   return undef;
 }                                       # rescue
 
+sub safe_rescue { 
+  my($foundcode, $mm_REs)=@_;
+
+  my @found=();
+  foreach my $code (keys %$mm_REs) {
+    my $re=$mm_REs->{$code};
+    push(@found,   $code) if $foundcode =~ $re;
+  }
+  return @found;
+}                                       # rescue
+
 sub _getmismatch_REs {
   ## for one barcode, set up the regular expressions that allows mismatches
   my($code, $max_mm)=@_;
