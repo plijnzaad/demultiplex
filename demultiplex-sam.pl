@@ -25,17 +25,23 @@ using a parenthesized regular expression indicated by the -e option.
 As with the original demultiplex script, mismatches can be allowed
 using the -m option.
 
-Output files are written in bam format, with all the original headers. 
+Output files are written in *BAM* format, with all the original headers. 
 
 For format of the barcode file, see testdata/testbarcodes.txt.
+
+If a file barcodegroup is given (option -g), all barcode id's are 
+replaced with their group ids, allowing the merging of several barcodes
+into  larger groups. The format of the group file is simply 
+  barcode_id \\s  group_id
+As with the barcode file, comments (/#.*$/) and empty lines are ignored.
 
 To test, do e.g. 
 
   (see demultiplex.pl \@FIX)
 
-
 NOTE: the script does *not* check if mismatched barcodes are unambiguous!
-Use edit-distance.pl and/or edit-distance-matrix.pl for that.
+Use edit-distance.pl and/or edit-distance-matrix.pl and/or
+check-barcodes.pl for that.
 
 Original copied from demultiplex.pl, 3bc1490195 (2016-10-19 17:40:41)
 written by <plijnzaad\@gmail.com>
