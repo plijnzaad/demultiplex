@@ -32,7 +32,7 @@ LINE:
       $len=$l;
     }
 
-    die "Barcode $code  does not match /^[ACGTN]{3,12}$/i, file $file, line $." unless $code =~ /^[ACGTN]{3,12}$/i;
+    die "Barcode $code  does not match /^[ACGT]{3,12}$/i, file $file, line $." unless $code =~ /^[ACGT]{3,12}$/i;
     # (3,12 are a wild guess at sanity)
 
     warn "barcode $barcodeid contains lower case letters, these will be uppercased and will not be allowed to mismatch" 
