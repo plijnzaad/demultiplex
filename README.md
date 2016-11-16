@@ -24,6 +24,14 @@ letters, these are never allowed to mismatch. (Any lowercase letters in
 the barcode file is uppercased before the matching; the lowercase is
 only used to conveniently specifying the fixed position).
 
+Note that if _k_ mistmatches are to be allowed, the minimum edit
+distance among all barcodes must be at least _k+2_ (since otherwise the
+mismatched code is exactly halfway between two exact barcodes).
+
+The script barcode-check.pl can be used to check for clashed between
+barcodes with mismatches.
+
+
 ## Using the code
 
 To start using it, do 
