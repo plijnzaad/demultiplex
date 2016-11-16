@@ -66,4 +66,9 @@ while(my $inst=$iter->next()) {
   }
 }
 
+warn "stats:\n";
+warn "unknown: $nunknown\n";
+warn "unique: $nunique\n";
+warn "ambiguous: $nambiguous\n";
+warn "done\n";
 1;
