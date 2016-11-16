@@ -15,6 +15,7 @@ sub readbarcodes_mixedcase {
   my $barcodeids={};
   my $barcodes_mixedcase = {};
   my $uppercase_codes={};
+  my $len=undef;
 
   open(FILE, "$file") or die "Barcode '$file': $!";
 LINE:
@@ -23,9 +24,20 @@ LINE:
     s/#.*//;
     next LINE unless $_;
     my ($barcodeid, $code)=split(' ');  # e.g. 'G7 \t CCAACAAT'
-    if( $code =~ /[a-z]/) { 
-      warn "barcode $barcodeid contains lower case letters, these will be uppercased and will not be allowed to mismatch";
+    my $l=length($code);
+
+    if ( defined($len) && $l != $len) { 
+      die "Barcode $code has length $l, expected uniform length $len, file $file line $.";
+    } else {
+      $len=$l;
     }
+
+    die "Barcode $code  does not match /^[ACGTN]{3,12}$/i, file $file, line $." unless $code =~ /^[ACGTN]{3,12}$/i;
+    # (3,12 are a wild guess at sanity)
+
+    warn "barcode $barcodeid contains lower case letters, these will be uppercased and will not be allowed to mismatch" 
+        if $code =~ /[a-z]/ ;
+
     die "Barcode id '$barcodeid' not unique" if $barcodeids->{$barcodeid}++;
     die "Barcode '$code' not unique" if $uppercase_codes->{"\U$code"}++;
     $barcodes_mixedcase->{$code}=$barcodeid;
