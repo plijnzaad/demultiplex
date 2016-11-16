@@ -32,16 +32,13 @@ my $barcodes = mismatch::mixedcase2upper($barcodes_mixedcase);     ## e.g. $h->{
 my $mismatch_REs = mismatch::convert2mismatchREs(barcodes=>$barcodes_mixedcase, 
                                                  allowed_mismatches =>$allowed_mismatches);# eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
 
-
 $barcodes_mixedcase=undef;
 
 my $len=length( (keys %$barcodes)[0]  );
 
 warn "Will now check all possible 5 ^ $len i.e. " . 5 ** $len . " barcodes\n";
 
-
 my $iter= Algorithm::Combinatorics::tuples_with_repetition([ qw(A C G T N)] , $len);
-
 
 my $nunknown=0;
 my $nunique=0;
