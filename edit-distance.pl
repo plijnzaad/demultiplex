@@ -45,6 +45,17 @@ while(<>) {
 
 my @strings = sort keys %$strings;
 
+sub format_mm { 
+  my($orig, $mm)=@_;
+  my @orig=split('', $orig);
+  my @mm=split('', $mm);
+  my @new;
+  for(my $i=0; $i<@orig; $i++) {
+    push(@new, ($orig[$i] eq  $mm[$i])? $mm[$i] : "\L$mm[$i]");
+  }
+  join("", @new);
+}
+
 print "# distance with edit distance <= $limit:\n";
 SEQ:
 for(my $i=0; $i<@strings; $i++) { 
@@ -58,7 +69,8 @@ for(my $i=0; $i<@strings; $i++) {
   print $strings->{$s}. "\t$s\n"; 
   for(my $h=0; $h<@hits; $h++) {
     my $hs=$s[ $hits[$h] ];
-    print $strings->{$hs} . "\t$hs (d=$d[ $hits[$h] ])\n";
+    my $mm=format_mm($s, $hs);
+    print "$strings->{$hs}\t$mm (d=$d[ $hits[$h] ])\n";
   }
   print "\n";
 }
