@@ -11,17 +11,26 @@ use Algorithm::Combinatorics;
 
 use vars qw($opt_h $opt_m);
 
+$opt_m=1;
+
 my $Usage="Usage:
 
-   $0 barcodes.txt -m NMISMATCHES
+   $0  [ -m NMISMATCHES ]  barcodes.txt
+
+Given a barcodefile (format: id \\t barcode \\n), find all the barcodes
+that have ambiguous potential barcode misreads.  The output is 
+
+MISREAD : BARCODE1 BARCODE2 [ BARCODE3 etc.]  
+
+where BARCODE1 etc. are the real barcodes, with letters mismatching the
+MISREAD 'highlighted' in lowercase.
 
 written by <plijnzaad\@gmail.com>
 ";
 
-if ( !getopts("m:h") || ! $opt_m || $opt_h || ! @ARGV) {
+if ( !getopts("m:h") || $opt_h) {
     die $Usage; 
 }
-
 my  $allowed_mismatches = $opt_m;
 
 my $barcodefile=$ARGV[0];
@@ -36,9 +45,10 @@ $barcodes_mixedcase=undef;
 
 my $len=length( (keys %$barcodes)[0]  );
 
-warn "Will now check all possible 5 ^ $len i.e. " . 5 ** $len . " barcodes\n";
+warn "Will now check all possible 4 ^ $len i.e. " . 4 ** $len . " barcodes for ambiguous misreads,
+allowing for $allowed_mismatches mismatches\n";
 
-my $iter= Algorithm::Combinatorics::tuples_with_repetition([ qw(A C G T N)] , $len);
+my $iter= Algorithm::Combinatorics::tuples_with_repetition([ qw(A C G T) ] , $len);
 
 my $nunknown=0;
 my $nunique=0;
@@ -54,8 +64,9 @@ while(my $inst=$iter->next()) {
   $nunique +=  (@codes==1);
   $nambiguous +=  (@codes>1);
   
-  if (@codes>1) {
-    print "$w: ". join(' ', @codes) . "\n";
+  if (@codes>1) {               # ambiguous
+    my @mm = map { mismatch::format_mm($w, $_); } @codes;
+    print "$w: ". join(' ', @mm) . "\n";
   }
 
   for my $b (@codes) { 
@@ -63,7 +74,7 @@ while(my $inst=$iter->next()) {
   }
 }
 
-warn "stats:\n";
+warn "\nstats:\n";
 warn "unknown: $nunknown\n";
 warn "unique: $nunique\n";
 warn "ambiguous: $nambiguous\n";
