@@ -97,6 +97,21 @@ sub safe_rescue {
   return @found;
 }                                       # rescue
 
+
+sub format_mm { 
+  ## given an real barcode and the found one (with mismatches), make all the
+  ## mismatched letters lowercase
+  my($orig, $mm)=@_;
+  my @orig=split('', $orig);
+  my @mm=split('', $mm);
+  my @new;
+  for(my $i=0; $i<@orig; $i++) {
+    push(@new, ($orig[$i] eq  $mm[$i])? $mm[$i] : "\L$mm[$i]");
+  }
+  join("", @new);
+}
+
+
 sub _getmismatch_REs {
   ## for one barcode, set up the regular expressions that allows mismatches
   my($code, $max_mm)=@_;
