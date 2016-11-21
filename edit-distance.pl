@@ -4,22 +4,23 @@ use mismatch;
 use Getopt::Std;
 ## use Text::Levenshtein qw(distance);     
 
-use vars qw($opt_h $opt_l);
+use vars qw($opt_h $opt_m);
 
 my $Usage="Find near-duplicates among barcodes. 
 
 For list of strings on stdin (format: name TAB barcode), print all the
-sets of strings with distance less than -l to each other.
+sets of strings with distance less than or equal NUMBER to each other.
+Mismatched letters are 'highlighted' in lowercase.
 
 Usage: 
-  $0 [ -l number ] < file > output
+  $0 [ -m NUMBER (default: 2) ] [<] barcodefile.txt > output
 ";
 
-if ( !getopts("hl:") || $opt_h ) {
+if ( !getopts("hm:") || $opt_h ) {
     die $Usage; 
 }
 
-my $limit= $opt_l || 1;
+my $limit= $opt_m || 2;
 
 
 sub hammingdist {                       
