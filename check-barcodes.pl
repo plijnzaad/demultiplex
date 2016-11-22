@@ -25,6 +25,10 @@ MISREAD : BARCODE1 BARCODE2 [ BARCODE3 etc.]
 where BARCODE1 etc. are the real barcodes, with letters mismatching the
 MISREAD 'highlighted' in lowercase.
 
+When the -o option is used, it will calculate a new barcodes that are unambiguous while allowing for
+mismatches. The barcodes will have lowercase letters in place where mistmatches cannot be tolerated.
+(running the current script on this new file will therefore not find any ambiguity anymore).
+
 written by <plijnzaad\@gmail.com>
 ";
 
@@ -41,7 +45,12 @@ my $barcodes = mismatch::mixedcase2upper($barcodes_mixedcase);     ## e.g. $h->{
 my $mismatch_REs = mismatch::convert2mismatchREs(barcodes=>$barcodes_mixedcase, 
                                                  allowed_mismatches =>$allowed_mismatches);# eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
 
-$barcodes_mixedcase=undef;
+# $barcodes_mixedcase=undef;
+my $id2code={};
+## invert the table for lookup later on
+for my $code (keys %$barcodes_mixedcase) { 
+  $id2code->{  $barcodes_mixedcase->{$code} }=$code;
+}
 
 my $len=length( (keys %$barcodes)[0]  );
 
@@ -56,6 +65,29 @@ my $nunique=0;
 my $nambiguous=0;
 my $badcodes={};
 
+sub merge_codes { 
+  ## do something like qw(AcGTT ACgTT ACgTt ) => "AcgTt"
+  my (@mm)=@_;
+
+  return $mm[0]  if(@mm==1);
+
+  my @w= map { [ split('', $_) ] } @mm;
+
+  my $len=int(@{$w[0]});
+
+  my @final=();
+
+  for(my $i=0; $i<$len; $i++) { 
+    my $h={};
+    my @col=map { $_->[$i];} @w ;
+    for my $col  ( @col ) { $h->{$col}++; }
+    my $n= int(keys %$h);
+    push(@final,  ($n==1) ? $col[0] : "\L$col[0]");
+  }
+  join("", @final);
+}
+
+print "# misreads that map ambiguously to mismatched barcodes:\n";
 WORD:
 while(my $inst=$iter->next()) {
   my $w=join("",@$inst);                # potential mismatched
@@ -85,7 +117,16 @@ while(my $inst=$iter->next()) {
 if ($opt_o) { 
   open(FILE, "> $opt_o") || die "$opt_o: $!";
 
-  die "not yet ready";
+##  for my $code (sort keys %$badcodes) { 
+  for my $id (sort keys %$id2code ) { 
+    my $code=$id2code->{$id};           # mixed case!
+    if(exists ($badcodes->{$code}))  {
+      my @mm=keys %{$badcodes->{$code}};
+      print FILE "$id\t". merge_codes(@mm) . "\t # was: $code\n";
+    } else {
+      print FILE "$id\t$code\n";
+    }
+  }
   close(FILE);
 }
 
