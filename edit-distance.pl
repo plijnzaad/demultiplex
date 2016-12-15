@@ -22,7 +22,6 @@ if ( !getopts("hm:") || $opt_h ) {
 
 my $limit= $opt_m || 2;
 
-
 sub hammingdist {                       
 ## honestly stolen from http://www.perlmonks.org/?node_id=500244
   length( $_[ 0 ] ) - ( ( $_[ 0 ] ^ $_[ 1 ] ) =~ tr[\0][\0] );
