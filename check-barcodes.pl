@@ -30,9 +30,9 @@ written to FILE. These new barcodes are unambiguous while allowing for
 mismatches. These barcodes have lowercase letters in places where
 mistmatches cannot be tolerated.  This output can be used by the
 demultiplex-{sam,fastq}.pl scripts (they use the same convention:
-mismatches are never allowed on lowercase letters).
-Note that running the current script on this new file will therefore not
-find any ambiguity anymore.
+mismatches are never allowed on lowercase letters).  Note that running the
+current script on this new file will therefore not find any ambiguity
+anymore.
 
 written by <plijnzaad\@gmail.com>
 ";
