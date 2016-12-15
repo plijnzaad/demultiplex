@@ -18,21 +18,26 @@ my $Usage="Usage:
    $0  [ -m NMISMATCHES ] [-o uniqified-barcodes.txt ]   barcodes.txt
 
 Given a barcodefile (format: id \\t barcode \\n), find all the barcodes
-that have ambiguous potential barcode misreads.  The output is 
+that have ambiguous potential barcode misreads.  The output (to stdout) is 
 
 MISREAD : BARCODE1 BARCODE2 [ BARCODE3 etc.]  
 
 where BARCODE1 etc. are the real barcodes, with letters mismatching the
-MISREAD 'highlighted' in lowercase.
+MISREAD 'highlighted' in lowercase. Statistics are written to stderr.
 
-When the -o option is used, it will calculate a new barcodes that are unambiguous while allowing for
-mismatches. The barcodes will have lowercase letters in place where mistmatches cannot be tolerated.
-(running the current script on this new file will therefore not find any ambiguity anymore).
+When the -o FILE option is used, it will calculate new barcodes that are
+written to FILE. These new barcodes are unambiguous while allowing for
+mismatches. These barcodes have lowercase letters in places where
+mistmatches cannot be tolerated.  This output can be used by the
+demultiplex-{sam,fastq}.pl scripts (they use the same convention:
+mismatches are never allowed on lowercase letters).
+Note that running the current script on this new file will therefore not
+find any ambiguity anymore.
 
 written by <plijnzaad\@gmail.com>
 ";
 
-if ( !getopts("m:o:h") || $opt_h) {
+if ( !getopts("m:o:h") || $opt_h  || @ARGV!= 1) {
     die $Usage; 
 }
 my  $allowed_mismatches = $opt_m;
