@@ -32,7 +32,7 @@ mistmatches cannot be tolerated.  This output can be used by the
 demultiplex-{sam,fastq}.pl scripts (they use the same convention:
 mismatches are never allowed on lowercase letters).  Note that running the
 current script on this new file will therefore not find any ambiguity
-anymore.
+anymore. For a testcase, see the file testdata/mm1-ambiguous-codes.txt
 
 written by <plijnzaad\@gmail.com>
 ";
