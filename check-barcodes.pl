@@ -109,7 +109,7 @@ while(my $inst=$iter->next()) {
   $nambiguous +=  (@codes>1);
   
   if (@codes>1) {               # ambiguous
-    my @mm = map { mismatch::format_mm($w, $_); } @codes;
+    my @mm = map { mismatch::format_mm($w, $_) . "( = $barcodes->{$_} )" ; } @codes;
     print "$w: ". join(' ', @mm) . "\n";
     
     for my $code (@codes) { 
