@@ -4,7 +4,6 @@
 use strict;
 use Getopt::Std;
 use FileHandle;
-use File::Basename;
 use Algorithm::Combinatorics;
 
 use mismatch;
