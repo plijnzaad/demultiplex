@@ -17,18 +17,28 @@ use mismatch;
 
 use vars qw($opt_h $opt_b $opt_m $opt_p $opt_o);
 
+my $version=getversion($0);
+my @args=@ARGV;
+
+
 my $Usage="Usage:
 
    zcat bigfile.fastq.gz | $0 -b barcodes.txt [-m mismatches] [ -p outputprefix ] [ -o outputdir ] 
 
 NOTE: the script does *not* check if mismatched barcodes are unambiguous!
-Use edit-distance.pl and/or edit-distance-matrix.pl for that.
+Use edit-distance.pl and/or edit-distance-matrix.pl for that. To fix
+ambiguous barcodes of a badly picked set of barcodes, run
+check-barcodes.pl (it can adjust the barcodes so that mismatches in
+ambiguous positions are disallowed).
+
 
 ";
 
 if ( !getopts("b:p:o:m:h") || ! $opt_b ||  $opt_h ) {
     die $Usage; 
 }
+
+warn "Running $0, version $version, with args @args\n";
 
 my  $allowed_mismatches = 1;
 $allowed_mismatches = $opt_m if defined($opt_m);  # 0 also possible, meaning no mismatched allowed
@@ -135,3 +145,12 @@ sub close_outfiles {
   }
 }
 
+sub getversion {
+  my($path)=@_;
+  my ($fullpath)=`which $path`;
+  my ($script,$dir) = fileparse($fullpath);
+  my $version=`cd $dir && git describe --match 'v[0-9]*' --tags --dirty`;
+  chomp($version);
+  $version='UNKNOWN' unless $version;
+  $version;
+}                                       # getversion
