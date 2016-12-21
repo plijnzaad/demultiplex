@@ -23,7 +23,7 @@ my @args=@ARGV;
 
 my $Usage="Usage:
 
-   zcat bigfile.fastq.gz | $0 -b barcodes.txt [-m mismatches] [ -p outputprefix ] [ -o outputdir ] 
+   zcat bigfile.fastq.gz | $0 -b barcodes.txt -m mismatches [ -p outputprefix ] [ -o outputdir ] 
 
 NOTE: the script does *not* check if mismatched barcodes are unambiguous!
 Use edit-distance.pl and/or edit-distance-matrix.pl for that. To fix
@@ -38,10 +38,11 @@ if ( !getopts("b:p:o:m:h") || ! $opt_b ||  $opt_h ) {
     die $Usage; 
 }
 
+die "-m option missing " unless defined($opt_m);
+
 warn "Running $0, version $version, with args @args\n";
 
-my  $allowed_mismatches = 1;
-$allowed_mismatches = $opt_m if defined($opt_m);  # 0 also possible, meaning no mismatched allowed
+my  $allowed_mismatches = $opt_m;
 
 my $barcodes_mixedcase = mismatch::readbarcodes_mixedcase($opt_b); ## eg. $h->{'AGCGtT') => 'M3'
 my $barcodes = mismatch::mixedcase2upper($barcodes_mixedcase);     ## e.g. $h->{'AGCGTT') => 'M3'

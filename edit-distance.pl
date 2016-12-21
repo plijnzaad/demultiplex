@@ -13,12 +13,14 @@ sets of strings with distance less than or equal NUMBER to each other.
 Mismatched letters are 'highlighted' in lowercase.
 
 Usage: 
-  $0 [ -m NUMBER (default: 2) ] [<] barcodefile.txt > output
+  $0 -m NUMBER  [<] barcodefile.txt > output
 ";
 
 if ( !getopts("hm:") || $opt_h ) {
     die $Usage; 
 }
+
+die "-m option missing " unless defined($opt_m);
 
 my $limit= $opt_m || 2;
 

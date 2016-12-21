@@ -11,11 +11,9 @@ use Algorithm::Combinatorics;
 
 use vars qw($opt_h $opt_m $opt_o);
 
-$opt_m=1;
-
 my $Usage="Usage:
 
-   $0  [ -m NMISMATCHES ] [-o uniqified-barcodes.txt ]   barcodes.txt
+   $0  -m NMISMATCHES [-o uniqified-barcodes.txt ]   barcodes.txt
 
 Given a barcodefile (format: id \\t barcode \\n), find all the barcodes
 that have ambiguous potential barcode misreads.  The output (to stdout) is 
@@ -37,9 +35,12 @@ anymore. For a testcase, see the file testdata/mm1-ambiguous-codes.txt
 written by <plijnzaad\@gmail.com>
 ";
 
-if ( !getopts("m:o:h") || $opt_h  || @ARGV!= 1) {
+if ( !getopts("m:o:h") || $opt_h  || @ARGV!= 1 ) {
     die $Usage; 
 }
+
+die "-m option missing " unless defined($opt_m);
+
 my  $allowed_mismatches = $opt_m;
 
 my $barcodefile=$ARGV[0];
