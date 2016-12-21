@@ -40,12 +40,13 @@ To test, do e.g.
   (see demultiplex.pl \@FIX)
 
 NOTE: the script does *not* check if mismatched barcodes are unambiguous!
-Use edit-distance.pl and/or edit-distance-matrix.pl and/or
-check-barcodes.pl for that.
+Use edit-distance.pl and/or edit-distance-matrix.pl for that. To fix
+ambiguous barcodes of a badly picked set of barcodes, run
+check-barcodes.pl (it can adjust the barcodes so that mismatches in
+ambiguous positions are disallowed).
 
 Original copied from demultiplex.pl, 3bc1490195 (2016-10-19 17:40:41)
-written by <plijnzaad\@gmail.com>
-";
+written by <plijnzaad\@gmail.com> ";
 
 if ( !getopts("b:p:o:m:g:h") || ! $opt_b ||  $opt_h ) {
     die $Usage; 
