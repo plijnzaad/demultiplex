@@ -1,3 +1,4 @@
+
 package mismatch;
 
 ### Usage: see demultiplex-{fastq,sam}.pl
@@ -6,6 +7,7 @@ use strict;
 
 use Math::Combinatorics;
 use Regexp::Optimizer;
+use File::Basename;
 
 sub readbarcodes_mixedcase {
   ## utility function to read barcodes, returns hash with eg. $barcodes->{'AGCGtT') => 'M3' }
