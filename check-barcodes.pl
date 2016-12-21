@@ -5,9 +5,9 @@ use strict;
 use Getopt::Std;
 use FileHandle;
 use File::Basename;
+use Algorithm::Combinatorics;
 
 use mismatch;
-use Algorithm::Combinatorics;
 
 use vars qw($opt_h $opt_m $opt_o);
 

@@ -10,7 +10,7 @@ use mismatch;
 
 use vars qw($opt_h $opt_b $opt_m $opt_p $opt_o $opt_e $opt_g);
 
-my $version=getversion($0);
+my $version=mismatch::getversion($0);
 my @args=@ARGV;
 
 $opt_e=  '^cbc=([ACTGN]+)';
@@ -212,13 +212,3 @@ sub read_groups {
   close(FILE);
   $groups;
 }
-
-sub getversion {
-  my($path)=@_;
-  my ($fullpath)=`which $path`;
-  my ($script,$dir) = fileparse($fullpath);
-  my $version=`cd $dir && git describe --match 'v[0-9]*' --tags --dirty`;
-  chomp($version);
-  $version='UNKNOWN' unless $version;
-  $version;
-}                                       # getversion

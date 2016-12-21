@@ -1,6 +1,6 @@
 package mismatch;
 
-### Usage: see demultiplex.pl
+### Usage: see demultiplex-{fastq,sam}.pl
 
 use strict;
 
@@ -149,6 +149,19 @@ sub _getmismatch_REs {
   @mmcodes;
 }                                       # _getmismatch_REs
 
+sub hammingdist {                       
+## honestly stolen from http://www.perlmonks.org/?node_id=500244
+  length( $_[ 0 ] ) - ( ( $_[ 0 ] ^ $_[ 1 ] ) =~ tr[\0][\0] );
+}
 
+sub getversion {
+  my($path)=@_;
+  my ($fullpath)=`which $path`;
+  my ($script,$dir) = fileparse($fullpath);
+  my $version=`cd $dir && git describe --match 'v[0-9]*' --tags --dirty`;
+  chomp($version);
+  $version='UNKNOWN' unless $version;
+  $version;
+}                                       # getversion
 
 1;

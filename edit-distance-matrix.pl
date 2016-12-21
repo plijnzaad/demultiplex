@@ -22,11 +22,6 @@ my  $names=[];
 my  $strings={};
 my  $codes={};
 
-sub hammingdist {                       
-## honestly stolen from http://www.perlmonks.org/?node_id=500244
-  length( $_[ 0 ] ) - ( ( $_[ 0 ] ^ $_[ 1 ] ) =~ tr[\0][\0] );
-}
-
 ### read codes
 LINE:
 while(<>) { 
@@ -54,7 +49,7 @@ for(my $i=0; $i<$n; $i++) {
   for(my $j=0; $j<$n; $j++) { 
     my ($b, $y)=($names->[$j], $codes->{$names->[$j]});
 ###    print distance($x,$y), "\t"; ### Levenshtein edit distance, but we don't allow indels
-    print hammingdist($x,$y), "\t";
+    print mismatch::hammingdist($x,$y), "\t";
   }                                     # for $j
   print "\n";
 }                                       # for $i
