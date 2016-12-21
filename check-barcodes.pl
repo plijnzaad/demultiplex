@@ -11,6 +11,10 @@ use mismatch;
 
 use vars qw($opt_h $opt_m $opt_o);
 
+my $version=mismatch::getversion($0);
+my @args=@ARGV;
+
+
 my $Usage="Usage:
 
    $0  -m NMISMATCHES [-o uniqified-barcodes.txt ]   barcodes.txt
@@ -40,6 +44,8 @@ if ( !getopts("m:o:h") || $opt_h  || @ARGV!= 1 ) {
 }
 
 die "-m option missing " unless defined($opt_m);
+
+warn "Running $0, version $version, with args @args\n";
 
 my  $allowed_mismatches = $opt_m;
 
@@ -110,7 +116,7 @@ while(my $inst=$iter->next()) {
   $nambiguous +=  (@codes>1);
   
   if (@codes>1) {               # ambiguous
-    my @mm = map { mismatch::format_mm($w, $_) . "( = $barcodes->{$_} )" ; } @codes;
+    my @mm = map { mismatch::format_mm($w, $_) . " ($barcodes->{$_})" ; } @codes;
     print "$w: ". join(' ', @mm) . "\n";
     
     for my $code (@codes) { 
