@@ -12,6 +12,7 @@
 use strict;
 use Getopt::Std;
 use FileHandle;
+## use IO::File;
 
 use mismatch;
 
@@ -128,11 +129,10 @@ sub open_outfiles {
 
   for my $lib (@libs) { 
     my $name=sprintf("%s.fastq.gz", $lib);
-##    my $name=sprintf("%s.fastq", $lib);
     $name="$opt_p$name" if $opt_p;
     $name="$opt_o/$name" if $opt_o;
     my $fh = FileHandle->new("| gzip > $name") or die "library $lib, file $name: $!";
-##    my $fh = FileHandle->new(" > $name") or die "library $lib, file $name: $! (did you create the output directory?)";
+    ### the checking does not work!? Just returns a valid file handle even if dir does not exist ...
     warn "Creating/overwriting file $name ...\n";
     $fhs->{$lib}=$fh;
   }
