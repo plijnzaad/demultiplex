@@ -175,6 +175,23 @@ sub commafy {
   join('',reverse(split('',$r)));
 }
 
+
+sub open_infile {
+  die "not used nor tested";
+  my($file)=@_;
+  my $fh=FileHandle->new();
+  if ($file =~ /\.gz/) { 
+    $fh->open("zcat $file | ", "r")  or die "'$file': $!";
+  } else { 
+    $fh->open("< $file")  or die "'$file': $!";
+  }
+  $fh;
+}
+
+sub close_infile {
+  die "not used nor tested";
+}
+
 sub open_outfiles { 
   my $args = ref $_[0] eq 'HASH' ? shift : {@_};
   my ($outdir, $prefix, $type, $files)=map {$args->{$_}} qw(outdir prefix type files);
@@ -214,22 +231,6 @@ sub close_outfiles {
   }
 }
 
-
-sub open_infile {
-  die "not used nor tested";
-  my($file)=@_;
-  my $fh=FileHandle->new();
-  if ($file =~ /\.gz/) { 
-    $fh->open("zcat $file | ", "r")  or die "'$file': $!";
-  } else { 
-    $fh->open("< $file")  or die "'$file': $!";
-  }
-  $fh;
-}
-
-sub close_infile {
-  die "not used nor tested";
-}
 
 
 1;
