@@ -59,10 +59,12 @@ sub mixedcase2upper {
 
 sub convert2mismatchREs {
 ## takes hash with barcodes (e.g. $h->{'AGCGtT') => 'M3' ) and returns
-## e.g. $h->{'AGCGtT') => REGEXP(0x25a7788) The hash returned contains,
-## per barcode, one regexp representing all possible mismatches of that
-## barcode.  In the values (i.e. regexps), lowercase letters (if any) are
-## uppercased and the regexp does not allow these letters to mismatch.
+## e.g. $h->{'AGCGTT') => REGEXP(0x25a7788). The resulting map only
+## contains uppercase barcodes, as this is needed for mapping it to the
+## output file.  The hash returned contains, per barcode, one regexp
+## representing all possible mismatches of that barcode.  In the values
+## (i.e. regexps), lowercase letters (if any) are uppercased and the
+## regexp does not allow these letters to mismatch.
 
   my $args = ref $_[0] eq 'HASH' ? shift : {@_}; # args: barcodes, allowed_mismatches
   my $o=Regexp::Optimizer->new;
@@ -72,7 +74,7 @@ sub convert2mismatchREs {
     my @res= _getmismatch_REs($code, $args->{allowed_mismatches}); # empty if allowed_mismatches==0
     my $r='^'.join("|", @res).'$';
     $r=$o->optimize(qr/$r/);
-    $mm_REs->{$code}= $r;               # just one big regexp!
+    $mm_REs->{"\U$code"}= $r;           # just one big regexp. Note the uppercasing
   }                                     # for $code
   $mm_REs;  
 }                                       # convert2mismatchREs
@@ -107,7 +109,7 @@ sub rescue {
 
   foreach my $code (keys %$mm_REs) {
     my $re=$mm_REs->{$code};
-    return  $code if $foundcode =~ $re;
+    return $code if $foundcode =~ $re;
   }
   return undef;
 }                                       # rescue
