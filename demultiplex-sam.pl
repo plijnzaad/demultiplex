@@ -12,7 +12,7 @@ use vars qw($opt_h $opt_b $opt_m $opt_p $opt_o $opt_e $opt_g);
 my $version=mismatch::getversion($0);
 my @args=@ARGV;
 
-$opt_e=  '^cbc=([ACTGN]+)';
+$opt_e=  '^cbc=([ACTGN]+)';             # select the barcode 
 
 my $Usage="Usage:
 
@@ -20,8 +20,9 @@ my $Usage="Usage:
 
 Given a barcode file, demultiplexes a SAM file (on stdin) where the
 barcode is expected in the QNAME (first field), and extracted from it
-using a parenthesized regular expression indicated by the -e option.
-As with the original demultiplex script, mismatches can be allowed
+using a parenthesized regular expression indicated by the -e option (the
+original use case is to split single-cell data by their cell bar
+codes). As with the demultiplex-fastq.pl script, mismatches can be allowed
 using the -m option.
 
 Output files are written in *BAM* format, with all the original headers. 
@@ -44,7 +45,6 @@ ambiguous barcodes of a badly picked set of barcodes, run
 check-barcodes.pl (it can adjust the barcodes so that mismatches in
 ambiguous positions are disallowed).
 
-Original copied from demultiplex.pl, 3bc1490195 (2016-10-19 17:40:41)
 written by <plijnzaad\@gmail.com> ";
 
 if ( !getopts("b:p:o:m:g:h") || ! $opt_b ||  $opt_h ) {
@@ -59,12 +59,20 @@ my  $allowed_mismatches = $opt_m;
 
 my $barcodes_mixedcase = mismatch::readbarcodes_mixedcase($opt_b); ## eg. $h->{'AGCGtT') => 'M3'
 my $barcodes = mismatch::mixedcase2upper($barcodes_mixedcase);     ## e.g. $h->{'AGCGTT') => 'M3'
-my $mismatch_REs = mismatch::convert2mismatchREs(barcodes=>$barcodes_mixedcase, 
-                                                 allowed_mismatches =>$allowed_mismatches);# eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
+
+my $mismatch_REs=[]; $#{$mismatch_REs}= ($allowed_mismatches);
+
+for(my $i=1; $i<=$allowed_mismatches; $i++) { 
+  my $re= mismatch::convert2mismatchREs(barcodes=>$barcodes_mixedcase, 
+                                        allowed_mismatches =>$allowed_mismatches);# eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
+  $mismatch_REs->[$i]=$re;
+  ## note: leave $mismatch_REs->[0] empty to avoid confusion (could use it for exact matches, but too slow)
+}
+
 $barcodes_mixedcase=undef;
 
 my $groups=undef;
-$groups=read_groups($opt_g) if $opt_g;
+$groups=mismatch::read_groups($opt_g) if $opt_g;
 
 my @files=();
 
@@ -90,85 +98,18 @@ my $barcode_re = qr/$opt_e/;
 my $nrefseqs=0;
 my $warned=0;
 
+my $stdin=FileHandle->new_from_fd(0, "<") || die "stdin: $!";
+
 ## lastly, process the actual input:
-RECORD:
-while(1) { 
-  my $record=<>;
+my $results=mismatch::demultiplex(type=>'sam',
+                               input=>$stdin, 
+                               outputs=>$filehandles,
+                               barcodes=>$barcodes, 
+                               mismatch_REs=>$mismatch_REs,
+                               groups=>$groups,
+                               barcode_re=>$barcode_re);
 
-  if ($record =~ /^@/) {                # header line, needed by all files
-    for my $lib (keys %$filehandles) { 
-      $filehandles->{$lib}->print($record);
-    }
-    $nrefseqs += ($record =~ /^\@SQ/);
-    next RECORD;
-  }
-  ### @@@FIX: at this point we should insert add a @PG record to the bam headers ...
-
-  if ( $nrefseqs ==0 && !$warned++ ) {
-    warn "*** expected to find reference sequences in the sam headers (the \@SQ records)\n";
-    warn "*** be sure to use output from samtools -h\n";
-  }
-
-## e.g. ^NS500413:188:H3M3WBGXY:1:11101:10124:1906:cbc=TACCTGTC:umi=TTCGAC \t 0 \t GLUL__chr1 \t 3255 \t 25 \t 76M \t 
-  my($qname,$flag, $rname, $pos, $mapq, $cigar, $rnext, $pnext, $tlen,
-     $seq, $qual, @optionals)=split("\t", $record);
-
-  my $foundcode;
-  for my $part (split(":", $qname)) {
-    $foundcode=$1 if $part =~ $barcode_re;
-  }
-  die "could not find barcode in QNAME '$qname', expected /$barcode_re/, line $." unless $foundcode;
-  my $lib;
- CASE:
-  while(1) {
-    $lib=$barcodes->{$foundcode};       # majority of cases
-    if ($lib) {
-      $nexact++;
-      last CASE;
-    }
-    if (! $allowed_mismatches) {
-      $nunknown++;
-      $lib='UNKNOWN';
-      last CASE;
-    }
-    my $correction = mismatch::rescue($foundcode, $mismatch_REs);
-    if($correction) {
-      $lib=$barcodes->{$correction};
-      $nmismatched++;
-      last CASE;
-    } else { 
-      $nunknown++;
-      $lib='UNKNOWN';
-      last CASE;
-    }
-    die "should not reach this point";
-  }                                     # CASE
-  $lib= $groups->{$lib} if $groups;
-  $lib = 'UNKNOWN' unless $lib;
-
-  $filehandles->{$lib}->print($record);
-  last RECORD if (eof(STDIN) || !$record);
-}                                       # RECORD
 mismatch::close_outfiles($filehandles);
 
 warn sprintf("exact: %s\nrescued: %s\nunknown: %s\n", 
-             map { mismatch::commafy $_ } ($nexact, $nmismatched, $nunknown ));
-
-
-sub read_groups { 
-  #return hash mapping barcode to group
-  my($file)=@_;
-  open(FILE, $file) || die "$0: $file: $!";
-  my $groups={};
-
-  while(<FILE>) { 
-    s/#.*//;
-    s/[\r\n]*$//;
-    next unless /\S+\s+\S+/;
-    my($barcode,$group)=split(' ',$_);
-    die "barcode $barcode not unique in group file $file, line $.," if $groups->{$barcode};
-    $groups->{$barcode}=$group;
-  }
-  close(FILE);
-  $groups;
-}
+             map { mismatch::commafy $_ } (map {$results->{$_}} qw(nexact nmismatched nunknown)));

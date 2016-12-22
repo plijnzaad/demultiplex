@@ -175,6 +175,95 @@ sub commafy {
   join('',reverse(split('',$r)));
 }
 
+sub demultiplex {
+  my $args = ref $_[0] eq 'HASH' ? shift : {@_};
+  my ($type, $input, $outputs, $barcodes, $mismatch_REs, $groups, $barcode_re)=
+      map {$args->{$_}} qw(type input outputs barcodes mismatch_REs groups barcode_re);
+
+  die "unknown type '$type', must be fastq or bam" if ($type ne 'fastq' && $type ne 'bam');
+  
+  my($nexact, $nunknown, $nrescued); 
+  my($nrefseqs, $warned);               # only used for bam
+
+  my $filehandles=$outputs;
+
+RECORD:
+  while(1) { 
+    my $foundcode;                      
+    my $record=<$input>;
+    ## ($foundcode and $record are the only two variables needed)
+    if ($type eq 'fastq') { 
+      ### e.g.:  ^@NS500413:172:HVFHWBGXX:1:11101:4639:1062 1:N:0:CCGTCCAT$
+      $foundcode=(split(':', $record))[-1];
+      $foundcode =~ s/[\n\r]*$//;
+      $record .= <>; # sequence line
+      $record .= <>; # '+'
+      $record .= <>; # quality line
+    } else { 
+      ### sam file, header line:
+      if ($record =~ /^@/) {                # header line, needed by all files
+        for my $lib (keys %$filehandles) { 
+          $filehandles->{$lib}->print($record);
+        }
+        $nrefseqs += ($record =~ /^\@SQ/);
+        next RECORD;
+      }
+      ### @@@FIX: at this point we should insert add a @PG record to the bam headers ...
+
+      if ( $nrefseqs ==0 && !$warned++ ) {
+        warn "*** expected to find reference sequences in the sam headers (the \@SQ records)\n";
+        warn "*** be sure to use output from samtools -h\n";
+      } 
+      ## else: sam file, read line:
+## e.g. ^NS500413:188:H3M3WBGXY:1:11101:10124:1906:cbc=TACCTGTC:umi=TTCGAC \t 0 \t GLUL__chr1 \t 3255 \t 25 \t 76M \t 
+      my($qname,$flag, $rname, $pos, $mapq, $cigar, $rnext, $pnext, $tlen,
+         $seq, $qual, @optionals)=split("\t", $record);
+      
+      for my $part (split(":", $qname)) {
+        $foundcode=$1 if $part =~ $barcode_re;
+      }
+      die "could not find barcode in QNAME '$qname', expected /$barcode_re/, line $." unless $foundcode;
+    }
+    ### at this point we need and have just $foundcode and $record
+    my $lib;
+  CASE:
+    while(1) {
+      $lib=$barcodes->{$foundcode};       # majority of cases
+      if ($lib) {
+        $nexact++;
+        last CASE;
+      }
+      if (! $mismatch_REs) {
+        $nunknown++;
+        $lib='UNKNOWN';
+        last CASE;
+      }
+      my $correction;
+      my $i;
+    TRY:
+      for($i=1; $i < @$mismatch_REs; $i++) { 
+        $correction=mismatch::rescue($foundcode, $mismatch_REs->[$i]);
+        last TRY if $correction;
+      }
+      if($correction) {
+        $lib=$barcodes->{$correction};
+        $nrescued++;
+        last CASE;
+      } else { 
+        $nunknown++;
+        $lib='UNKNOWN';
+        last CASE;
+      }
+      die "should not reach this point";
+    }                                     # CASE
+    $lib= $groups->{$lib} if $groups;
+    $lib = 'UNKNOWN' unless $lib;
+
+    $filehandles->{$lib}->print($record);
+    last RECORD if (eof(STDIN) || !$record);
+  }                                       # RECORD
+  {nexact=>$nexact, nrescued=>$nrescued, nunknown=>$nunknown};
+}                                         # sub demultiplex
 
 sub open_infile {
   die "not used nor tested";
@@ -223,7 +312,6 @@ sub open_outfiles {
   $fhs;
 }                                       # open_outfiles
 
-
 sub close_outfiles {
   my($fhs)=@_;
   for my $lib (keys %$fhs) {
@@ -231,6 +319,23 @@ sub close_outfiles {
   }
 }
 
+sub read_groups { 
+  #return hash mapping barcode to group
+  my($file)=@_;
+  open(FILE, $file) || die "$0: $file: $!";
+  my $groups={};
+
+  while(<FILE>) { 
+    s/#.*//;
+    s/[\r\n]*$//;
+    next unless /\S+\s+\S+/;
+    my($barcode,$group)=split(' ',$_);
+    die "barcode $barcode not unique in group file $file, line $.," if $groups->{$barcode};
+    $groups->{$barcode}=$group;
+  }
+  close(FILE);
+  $groups;
+}                                       # sub read_group
 
 
 1;
