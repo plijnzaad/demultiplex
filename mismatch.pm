@@ -64,7 +64,7 @@ sub convert2mismatchREs {
 ## barcode.  In the values (i.e. regexps), lowercase letters (if any) are
 ## uppercased and the regexp does not allow these letters to mismatch.
 
-  my $args = ref $_[0] eq 'HASH' ? shift : {@_}; # args: barcodes, allowed
+  my $args = ref $_[0] eq 'HASH' ? shift : {@_}; # args: barcodes, allowed_mismatches
   my $o=Regexp::Optimizer->new;
 
   my $mm_REs={};
@@ -165,5 +165,14 @@ sub getversion {
   $version='UNKNOWN' unless $version;
   $version;
 }                                       # getversion
+
+sub commafy {
+  # insert comma's to separate powers of 1000
+  my($i)=@_;
+  my $r = join('',reverse(split('',$i)));
+  $r =~ s/(\d{3})/$1,/g;
+  $r =~ s/,$//;
+  join('',reverse(split('',$r)));
+}
 
 1;

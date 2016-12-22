@@ -148,17 +148,8 @@ while(1) {
 }                                       # RECORD
 close_outfiles($filehandles);
 
-sub commafy {
-  # insert comma's to separate powers of 1000
-  my($i)=@_;
-  my $r = join('',reverse(split('',$i)));
-  $r =~ s/(\d{3})/$1,/g;
-  $r =~ s/,$//;
-  join('',reverse(split('',$r)));
-}
-
 warn sprintf("exact: %s\nrescued: %s\nunknown: %s\n", 
-             map { commafy $_ } ($nexact, $nmismatched, $nunknown ));
+             map { mismatch::commafy $_ } ($nexact, $nmismatched, $nunknown ));
 
 sub open_infile {
   die "not used nor tested";

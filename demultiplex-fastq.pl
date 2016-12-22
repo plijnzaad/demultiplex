@@ -46,8 +46,16 @@ my  $allowed_mismatches = $opt_m;
 
 my $barcodes_mixedcase = mismatch::readbarcodes_mixedcase($opt_b); ## eg. $h->{'AGCGtT') => 'M3'
 my $barcodes = mismatch::mixedcase2upper($barcodes_mixedcase);     ## e.g. $h->{'AGCGTT') => 'M3'
-my $mismatch_REs = mismatch::convert2mismatchREs(barcodes=>$barcodes_mixedcase, 
-                                                 allowed_mismatches =>$allowed_mismatches);# eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
+
+my @mismatch_REs; $#mismatch_REs= ($allowed_mismatches);
+
+for(my $i=1; $i<=$allowed_mismatches; $i++) { 
+  my $re= mismatch::convert2mismatchREs(barcodes=>$barcodes_mixedcase, 
+                                        allowed_mismatches =>$allowed_mismatches);# eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
+  $mismatch_REs[$i]=$re;
+  ## note: leave $mismatch_REs[0] empty to avoid confusion (could use it for exact matches, but to slow)
+}
+
 $barcodes_mixedcase=undef;
 
 my @files=(values %$barcodes, 'UNKNOWN');
@@ -81,7 +89,13 @@ while(1) {
       $lib='UNKNOWN';
       last CASE;
     }
-    my $correction = mismatch::rescue($foundcode, $mismatch_REs);
+    my $correction;
+    my $i;
+  TRY:
+    for($i=1; $i<= $allowed_mismatches; $i++) { 
+      $correction=mismatch::rescue($foundcode, $mismatch_REs[$i]);
+      last TRY if $correction;
+    }
     if($correction) {
       $lib=$barcodes->{$correction};
       $nmismatched++;
@@ -98,17 +112,8 @@ while(1) {
 }                                       # RECORD
 close_outfiles($filehandles);
 
-sub commafy {
-  # insert comma's to separate powers of 1000
-  my($i)=@_;
-  my $r = join('',reverse(split('',$i)));
-  $r =~ s/(\d{3})/$1,/g;
-  $r =~ s/,$//;
-  join('',reverse(split('',$r)));
-}
-
 warn sprintf("exact: %s\nrescued: %s\nunknown: %s\n", 
-             map { commafy $_ } ($nexact, $nmismatched, $nunknown ));
+             map { mismatch::commafy $_ } ($nexact, $nmismatched, $nunknown ));
 
 sub open_infile {
   die "not used nor tested";
