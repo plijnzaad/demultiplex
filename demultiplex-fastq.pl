@@ -44,7 +44,7 @@ warn "Running $0, version $version, with args @args\n";
 
 my  $allowed_mismatches = $opt_m;
 
-my $barcodes_mixedcase = mismatch::readbarcodes_mixedcase($opt_b); ## eg. $h->{'AGCGtT') => 'M3'
+my $barcodes_mixedcase = mismatch::readbarcodes($opt_b); ## eg. $h->{'AGCGtT') => 'M3'
 my $barcodes = mismatch::mixedcase2upper($barcodes_mixedcase);     ## e.g. $h->{'AGCGTT') => 'M3'
 
 my $mismatch_REs=[]; $#{$mismatch_REs}= ($allowed_mismatches);

@@ -9,7 +9,7 @@ use Math::Combinatorics;
 use Regexp::Optimizer;
 use File::Basename;
 
-sub readbarcodes_mixedcase {
+sub readbarcodes {
   ## utility function to read barcodes, returns hash with eg. $barcodes->{'AGCGtT') => 'M3' }
   ## Note that lower case letters (used for disallowing specific mismatches) are
   ## still there (and won't match actual barcodes).
@@ -46,7 +46,7 @@ LINE:
   }                                     # while LINE
   close(FILE);
   $barcodes_mixedcase;
-}                                       # readbarcodes_mixedcase
+}                                       # readbarcodes
 
 sub mixedcase2upper { 
   ## utility function to convert the mixed case hash (which is used for the mismatch regular expressions) to an uppercased
@@ -78,7 +78,7 @@ sub convert2mismatchREs {
 }                                       # convert2mismatchREs
 
 sub rescue { 
-  ### return the barcode without mismatches (not its id!)
+  ### return the barcode without mismatches (not its ID!)
   my($foundcode, $mm_REs)=@_;
 
   foreach my $code (keys %$mm_REs) {
