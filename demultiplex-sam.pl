@@ -60,7 +60,7 @@ my  $allowed_mismatches = $opt_m;
 my $barcodes_mixedcase = mismatch::readbarcodes($opt_b); ## eg. $h->{'AGCGtT') => 'M3'
 my $barcodes = mismatch::mixedcase2upper($barcodes_mixedcase);     ## e.g. $h->{'AGCGTT') => 'M3'
 
-my $mismatch_REs=get_mismatchREs(barcodes=>$barcodes_mixedcase, max_mismatches=>$allowed_mismatches);
+my $mismatch_REs=mismatch::get_mismatchREs(barcodes=>$barcodes_mixedcase, max_mismatches=>$allowed_mismatches);
 
 $barcodes_mixedcase=undef;
 
