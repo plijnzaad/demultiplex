@@ -77,6 +77,30 @@ sub convert2mismatchREs {
   $mm_REs;  
 }                                       # convert2mismatchREs
 
+sub get_mismatchREs {
+  ### set up array of regexp for increasing numbers of mismatches, to be
+  ### tested in turn.  They are to be tested in turn. Element 0
+  ### (corresponding to 'no mismatches') is deliberately left undefined
+  ### to avoid confusion
+
+  my $args = ref $_[0] eq 'HASH' ? shift : {@_};
+  my ($barcodes, $max_mismatches)= map {$args->{$_}} qw(barcode max_mismatches);
+
+  return undef if ($max_mismatches==0);
+
+  my $mismatch_REs=[]; 
+  $#{$mismatch_REs}= ($max_mismatches);
+
+  for(my $i=1; $i<=$max_mismatches; $i++) { 
+    my $re= mismatch::convert2mismatchREs(barcodes=>$barcodes, 
+                                          allowed_mismatches =>$i);
+    ## eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
+    $mismatch_REs->[$i]=$re;
+  }
+  $mismatch_REs;
+}                                       # get_mismatchREs
+
+
 sub rescue { 
   ### return the barcode without mismatches (not its ID!)
   my($foundcode, $mm_REs)=@_;

@@ -47,16 +47,7 @@ my  $allowed_mismatches = $opt_m;
 my $barcodes_mixedcase = mismatch::readbarcodes($opt_b); ## eg. $h->{'AGCGtT') => 'M3'
 my $barcodes = mismatch::mixedcase2upper($barcodes_mixedcase);     ## e.g. $h->{'AGCGTT') => 'M3'
 
-my $mismatch_REs=[]; $#{$mismatch_REs}= ($allowed_mismatches);
-
-for(my $i=1; $i<=$allowed_mismatches; $i++) { 
-  my $re= mismatch::convert2mismatchREs(barcodes=>$barcodes_mixedcase, 
-                                        allowed_mismatches =>$allowed_mismatches);
-## eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
-  $mismatch_REs->[$i]=$re;
-  ## note: leave $mismatch_REs->[0] empty to avoid confusion (could use it for exact matches, but too slow)
-}
-
+my $mismatch_REs=get_mismatchREs(barcodes=>$barcodes_mixedcase, max_mismatches=>$allowed_mismatches);
 $barcodes_mixedcase=undef;
 
 my @files=(values %$barcodes, 'UNKNOWN');
