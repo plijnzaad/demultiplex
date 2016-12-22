@@ -76,7 +76,10 @@ if ($groups) {
   @files= (values %$barcodes, 'UNKNOWN');
 }
 
-my $filehandles=open_outfiles(@files);      # opens M3.fastq.gz, ambiguous.fastq.gz etc.
+my $filehandles=mismatch::open_outfiles(outdir=>$opt_o, 
+                                        prefix=>$opt_p,
+                                        type=>'bam',
+                                        files=>[@files]);      # opens M3.bam, UNKNOWN.bam etc.
 
 my $nexact=0;
 my $nmismatched=0;                         # having at most $mismatch mismatches
@@ -146,44 +149,11 @@ while(1) {
   $filehandles->{$lib}->print($record);
   last RECORD if (eof(STDIN) || !$record);
 }                                       # RECORD
-close_outfiles($filehandles);
+mismatch::close_outfiles($filehandles);
 
 warn sprintf("exact: %s\nrescued: %s\nunknown: %s\n", 
              map { mismatch::commafy $_ } ($nexact, $nmismatched, $nunknown ));
 
-sub open_infile {
-  die "not used nor tested";
-  my($file)=@_;
-  my $fh=FileHandle->new();
-  if ($file =~ /\.gz/) { 
-    $fh->open("zcat $file | ", "r")  or die "'$file': $!";
-  } else { 
-    $fh->open("< $file")  or die "'$file': $!";
-  }
-  $fh;
-}
-
-sub open_outfiles { 
-  my(@libs)=@_;
-  my $fhs={};
-
-  for my $lib (@libs) { 
-    my $name=sprintf("%s.bam", $lib);
-    $name="$opt_p$name" if $opt_p;
-    $name="$opt_o/$name" if $opt_o;
-    my $fh = FileHandle->new(" | samtools view - -h -b > $name") or die "library $lib, file $name: $! (did you create the output directory?)";
-    warn "Creating/overwriting file $name ...\n";
-    $fhs->{$lib}=$fh;
-  }
-  $fhs;
-}                                       # open_outfiles
-
-sub close_outfiles {
-  my($fhs)=@_;
-  for my $lib (keys %$fhs) {
-    $fhs->{$lib}->close() or die "could not close (or open?) demultiplexed bam file for library $lib; investigate";
-  }
-}
 
 sub read_groups { 
   #return hash mapping barcode to group

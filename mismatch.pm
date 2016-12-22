@@ -175,4 +175,61 @@ sub commafy {
   join('',reverse(split('',$r)));
 }
 
+sub open_outfiles { 
+  my $args = ref $_[0] eq 'HASH' ? shift : {@_};
+  my ($outdir, $prefix, $type, $files)=map {$args->{$_}} qw(outdir prefix type files);
+  my(@libs)=@$files;
+  my $fhs={};
+
+  die "Output directory $outdir: $!" if ($outdir && !(-d $outdir && -w $outdir));
+
+  for my $lib (@libs) { 
+    my $name;
+    my $fh;
+    if ($type =~ /fastq/) {
+      $name=sprintf("%s.fastq.gz", $lib);
+      $name="$prefix$name" if $prefix;
+      $name="$outdir/$name" if $outdir;
+      $fh = FileHandle->new("| gzip > $name");
+    } elsif ($type eq 'bam' ) { 
+      $name=sprintf("%s.bam", $lib);
+      $name="$prefix$name" if $prefix;
+      $name="$outdir/$name" if $outdir;
+      $fh = FileHandle->new(" | samtools view - -h -b > $name");
+    } else { 
+      die "open_outfiles: unknown type '$type' requested";
+    }
+    die "library $lib, file $name: $!" unless $fh;
+    warn "Creating/overwriting file $name ...\n";
+    $fhs->{$lib}=$fh;
+  }
+  $fhs;
+}                                       # open_outfiles
+
+
+sub close_outfiles {
+  my($fhs)=@_;
+  for my $lib (keys %$fhs) {
+    $fhs->{$lib}->close() or die "could not close (or open?) demultiplexed bam file for library $lib; investigate";
+  }
+}
+
+
+sub open_infile {
+  die "not used nor tested";
+  my($file)=@_;
+  my $fh=FileHandle->new();
+  if ($file =~ /\.gz/) { 
+    $fh->open("zcat $file | ", "r")  or die "'$file': $!";
+  } else { 
+    $fh->open("< $file")  or die "'$file': $!";
+  }
+  $fh;
+}
+
+sub close_infile {
+  die "not used nor tested";
+}
+
+
 1;
