@@ -8,6 +8,7 @@ use strict;
 use Math::Combinatorics;
 use Regexp::Optimizer;
 use File::Basename;
+use FileHandle;
 
 sub readbarcodes {
   ## utility function to read barcodes, returns hash with eg. $barcodes->{'AGCGtT') => 'M3' }
@@ -286,7 +287,7 @@ RECORD:
     $lib = 'UNKNOWN' unless $lib;
 
     $filehandles->{$lib}->print($record);
-    last RECORD if (eof(STDIN) || !$record);
+    last RECORD if ( $input->eof() || !$record );
   }                                       # RECORD
   {nexact=>$nexact, nrescued=>$nrescued, nunknown=>$nunknown};
 }                                         # sub demultiplex
