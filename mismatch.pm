@@ -87,7 +87,7 @@ sub get_mismatchREs {
   ### to avoid confusion
 
   my $args = ref $_[0] eq 'HASH' ? shift : {@_};
-  my ($barcodes, $max_mismatches)= map {$args->{$_}} qw(barcode max_mismatches);
+  my ($barcodes, $max_mismatches)= map {$args->{$_}} qw(barcodes max_mismatches);
 
   return undef if ($max_mismatches==0);
 
