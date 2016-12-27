@@ -74,6 +74,8 @@ my $results=mismatch::demultiplex(type=>'fastq',
 
 mismatch::close_outfiles($filehandles);
 
-warn sprintf("exact: %s\nrescued: %s\nunknown: %s\n", 
-             map { mismatch::commafy $_ } (map {$results->{$_}} qw(nexact nrescued nunknown)));
-
+warn sprintf("exact: %s\n", mismatch::commafy($results->{nexact}));
+for(my $i=1; $i<=$#{$results->{nrescued}}; $i++) {
+  warn sprintf("%d mismatches: %s\n", $i, mismatch::commafy($results->{nrescued}->[$i]));
+}
+warn sprintf("unknown: %s\n", mismatch::commafy($results->{nunknown}));
