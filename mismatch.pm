@@ -322,7 +322,7 @@ sub open_outfiles {
       $name=sprintf("%s.fastq.gz", $lib);
       $name="$prefix$name" if $prefix;
       $name="$outdir/$name" if $outdir;
-      $fh = FileHandle->new("| gzip > $name");
+      $fh = FileHandle->new("| gzip -n > $name");
     } elsif ($type eq 'bam' ) { 
       $name=sprintf("%s.bam", $lib);
       $name="$prefix$name" if $prefix;
