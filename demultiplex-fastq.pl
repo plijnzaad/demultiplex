@@ -131,7 +131,7 @@ sub open_outfiles {
     my $name=sprintf("%s.fastq.gz", $lib);
     $name="$opt_p$name" if $opt_p;
     $name="$opt_o/$name" if $opt_o;
-    my $fh = FileHandle->new("| gzip > $name") or die "library $lib, file $name: $!";
+    my $fh = FileHandle->new("| gzip -n > $name") or die "library $lib, file $name: $!";
     ### the checking does not work!? Just returns a valid file handle even if dir does not exist ...
     warn "Creating/overwriting file $name ...\n";
     $fhs->{$lib}=$fh;
