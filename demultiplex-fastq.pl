@@ -16,7 +16,7 @@ use FileHandle;
 
 use mismatch;
 
-use vars qw($opt_h $opt_b $opt_m $opt_p $opt_o);
+use vars qw($opt_h $opt_b $opt_m $opt_p $opt_o $opt_s);
 
 my $version=mismatch::getversion($0);
 my @args=@ARGV;
@@ -24,18 +24,18 @@ my @args=@ARGV;
 
 my $Usage="Usage:
 
-   zcat bigfile.fastq.gz | $0 -b barcodes.txt -m mismatches [ -p outputprefix ] [ -o outputdir ] 
+   zcat bigfile.fastq.gz | $0 -b barcodes.txt -m mismatches [ -p outputprefix ] [ -o outputdir ] [ -s FILE ]
 
 NOTE: the script does *not* check if mismatched barcodes are unambiguous!
 Use edit-distance.pl and/or edit-distance-matrix.pl for that. To fix
 ambiguous barcodes of a badly picked set of barcodes, run
 check-barcodes.pl (it can adjust the barcodes so that mismatches in
-ambiguous positions are disallowed).
-
+ambiguous positions are disallowed). If option -s is specified, it 
+will write stats per single barcode to that file.
 
 ";
 
-if ( !getopts("b:p:o:m:h") || ! $opt_b ||  $opt_h ) {
+if ( !getopts("b:p:o:m:s:h") || ! $opt_b ||  $opt_h ) {
     die $Usage; 
 }
 
@@ -79,3 +79,9 @@ for(my $i=1; $i<=$#{$results->{nrescued}}; $i++) {
   warn sprintf("%d mismatches: %s\n", $i, mismatch::commafy($results->{nrescued}->[$i]));
 }
 warn sprintf("unknown: %s\n", mismatch::commafy($results->{nunknown}));
+
+mismatch::print_statsperbarcode({file=>$opt_s, 
+                                 stats=>$results->{statsperbarcode}, 
+                                 max_mismatches=>$allowed_mismatches,
+                                 barcodes=>$barcodes}) if $opt_s;
+

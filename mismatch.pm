@@ -209,9 +209,12 @@ sub demultiplex {
 
   die "unknown type '$type', must be fastq or bam" if ($type ne 'fastq' && $type ne 'bam');
   
-  my($nexact, $nunknown, $nrescued, $statspercode); 
+  my($nexact, $nunknown, $nrescued, $statsperbarcode); 
   my($nrefseqs, $warned);               # only used for bam
 
+  foreach my $code (keys %$barcodes )  { 
+    $statsperbarcode->{$code}=[];
+  }
   my $filehandles=$outputs;
 
 RECORD:
@@ -258,6 +261,7 @@ RECORD:
       $lib=$barcodes->{$foundcode};       # majority of cases
       if ($lib) {
         $nexact++;
+        $statsperbarcode->{$lib}->[0]++;
         last CASE;
       }
       if (! $mismatch_REs) {
@@ -266,16 +270,16 @@ RECORD:
         last CASE;
       }
       my $correction;
-      my $i;
+      my $nmismatches;
     TRY:
-      for($i=1; $i < @$mismatch_REs; $i++) { 
-        $correction=mismatch::rescue($foundcode, $mismatch_REs->[$i]);
+      for($nmismatches=1; $nmismatches < @$mismatch_REs; $nmismatches++) { 
+        $correction=mismatch::rescue($foundcode, $mismatch_REs->[ $nmismatches ]);
         last TRY if $correction;
       }
       if($correction) {
         $lib=$barcodes->{$correction};
-        $nrescued->[$i]++;
-        $statspercode->[$i]->{$correction}++;
+        $nrescued->[$nmismatches]++;
+        $statsperbarcode->{$correction}->[$nmismatches]++;
         last CASE;
       } else { 
         $nunknown++;
@@ -290,7 +294,7 @@ RECORD:
     $filehandles->{$lib}->print($record);
     last RECORD if ( $input->eof() || !$record );
   }                                       # RECORD
-  {nexact=>$nexact, nrescued=>$nrescued, nunknown=>$nunknown, $statspercode};
+  {nexact=>$nexact, nrescued=>$nrescued, nunknown=>$nunknown, statsperbarcode=>$statsperbarcode};
 }                                         # sub demultiplex
 
 sub open_infile {
@@ -365,5 +369,24 @@ sub read_groups {
   $groups;
 }                                       # sub read_group
 
+sub print_statsperbarcode { 
+  my $args = ref $_[0] eq 'HASH' ? shift : {@_}; # args: file, stats, max_mismatches, barcodes
+  my ($file, $stats, $max_mismatches, $barcodes)= map {$args->{$_}} qw(file stats max_mismatches barcodes);
 
+  open(OUT, "> $file")  || die "$file: $!";
+
+ CODE:
+  foreach my $code (keys %$barcodes) { 
+    my $id=$barcodes->{$code};
+    my $nexact=$stats->{$code}->[0] || 0;
+    print "$id ($code):\t$nexact\t"; 
+  I:
+    for(my $i=1; $i<$max_mismatches; $i++) { 
+      my $n=$stats->{$code}->[$i] || 0;
+      print OUT mismatch::commafy($n) . "\t";
+    }
+    print "\n";
+  }                                     # CODE
+  close(OUT);
+}
 1;
