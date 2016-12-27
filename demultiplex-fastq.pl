@@ -5,7 +5,7 @@
 #
 # To test, do e.g. 
 #
-#   ./demultiplex.pl -m 1 < testdata/one-mismatch.fastq  -b testdata/testbarcodes.txt -p DEMUL
+#   ./demultiplex-fastq.pl -m 1 < testdata/one-mismatch.fastq  -b testdata/testbarcodes.txt -p DEMUL
 # 
 # written by <plijnzaad@gmail.com>
 
@@ -45,104 +45,35 @@ warn "Running $0, version $version, with args @args\n";
 
 my  $allowed_mismatches = $opt_m;
 
-my $barcodes_mixedcase = mismatch::readbarcodes_mixedcase($opt_b); ## eg. $h->{'AGCGtT') => 'M3'
+my $barcodes_mixedcase = mismatch::readbarcodes($opt_b); ## eg. $h->{'AGCGtT') => 'M3'
 my $barcodes = mismatch::mixedcase2upper($barcodes_mixedcase);     ## e.g. $h->{'AGCGTT') => 'M3'
-my $mismatch_REs = mismatch::convert2mismatchREs(barcodes=>$barcodes_mixedcase, 
-                                                 allowed_mismatches =>$allowed_mismatches);# eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
+
+my $mismatch_REs=mismatch::get_mismatchREs(barcodes=>$barcodes_mixedcase, max_mismatches=>$allowed_mismatches);
 $barcodes_mixedcase=undef;
 
 my @files=(values %$barcodes, 'UNKNOWN');
-my $filehandles=open_outfiles(@files);      # opens M3.fastq.gz, ambiguous.fastq.gz etc.
+
+my $filehandles=mismatch::open_outfiles(outdir=>$opt_o, 
+                                        prefix=>$opt_p,
+                                        type=>'fastq',
+                                        files=>[@files]);      # opens M3.fastq.gz, UNKNOWN.fastq.gz, etc.
 
 my $nexact=0;
 my $nmismatched=0;                         # having at most $mismatch mismatches
 my $nunknown=0;
 
 ## lastly, process the actual input:
-RECORD:
-while(1) { 
-  my $record=<>;
-  ### e.g.:  ^@NS500413:172:HVFHWBGXX:1:11101:4639:1062 1:N:0:CCGTCCAT$
-  my ($foundcode)=(split(':', $record))[-1];
-  $foundcode =~ s/[\n\r]*$//;
-  $record .= <>; # sequence line
-  $record .= <>; # '+'
-  $record .= <>; # quality line
-  
-  my $lib;
- CASE:
-  while(1) {
-    $lib=$barcodes->{$foundcode};       # majority of cases
-    if ($lib) {
-      $nexact++;
-      last CASE;
-    }
-    if (! $allowed_mismatches) {
-      $nunknown++;
-      $lib='UNKNOWN';
-      last CASE;
-    }
-    my $correction = mismatch::rescue($foundcode, $mismatch_REs);
-    if($correction) {
-      $lib=$barcodes->{$correction};
-      $nmismatched++;
-      last CASE;
-    } else { 
-      $nunknown++;
-      $lib='UNKNOWN';
-      last CASE;
-    }
-    die "should not reach this point";
-  }                                     # CASE
-  $filehandles->{$lib}->print($record);
-  last RECORD if (eof(STDIN) || !$record);
-}                                       # RECORD
-close_outfiles($filehandles);
 
-sub commafy {
-  # insert comma's to separate powers of 1000
-  my($i)=@_;
-  my $r = join('',reverse(split('',$i)));
-  $r =~ s/(\d{3})/$1,/g;
-  $r =~ s/,$//;
-  join('',reverse(split('',$r)));
-}
+my $stdin=FileHandle->new_from_fd(0, "<") || die "stdin: $!";
+
+my $results=mismatch::demultiplex(type=>'fastq',
+                                  input=>$stdin, 
+                                  outputs=>$filehandles,
+                                  barcodes=>$barcodes, 
+                                  mismatch_REs=>$mismatch_REs);
+
+mismatch::close_outfiles($filehandles);
 
 warn sprintf("exact: %s\nrescued: %s\nunknown: %s\n", 
-             map { commafy $_ } ($nexact, $nmismatched, $nunknown ));
-
-sub open_infile {
-  die "not used nor tested";
-  my($file)=@_;
-  my $fh=FileHandle->new();
-  if ($file =~ /\.gz/) { 
-    $fh->open("zcat $file | ", "r")  or die "'$file': $!";
-  } else { 
-    $fh->open("< $file")  or die "'$file': $!";
-  }
-  $fh;
-}
-
-sub open_outfiles { 
-  my(@libs)=@_;
-  my $fhs={};
-
-  for my $lib (@libs) { 
-    my $name=sprintf("%s.fastq.gz", $lib);
-    $name="$opt_p$name" if $opt_p;
-    $name="$opt_o/$name" if $opt_o;
-    my $fh = FileHandle->new("| gzip -n > $name") or die "library $lib, file $name: $!";
-    ### the checking does not work!? Just returns a valid file handle even if dir does not exist ...
-    warn "Creating/overwriting file $name ...\n";
-    $fhs->{$lib}=$fh;
-  }
-  $fhs;
-}                                       # open_outfiles
-
-sub close_outfiles {
-  my($fhs)=@_;
-  for my $lib (keys %$fhs) {
-    $fhs->{$lib}->close() or die "could not close demultiplexed file for library $lib; investigate";
-  }
-}
+             map { mismatch::commafy $_ } (map {$results->{$_}} qw(nexact nrescued nunknown)));
 

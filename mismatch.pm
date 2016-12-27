@@ -8,8 +8,9 @@ use strict;
 use Math::Combinatorics;
 use Regexp::Optimizer;
 use File::Basename;
+use FileHandle;
 
-sub readbarcodes_mixedcase {
+sub readbarcodes {
   ## utility function to read barcodes, returns hash with eg. $barcodes->{'AGCGtT') => 'M3' }
   ## Note that lower case letters (used for disallowing specific mismatches) are
   ## still there (and won't match actual barcodes).
@@ -46,7 +47,7 @@ LINE:
   }                                     # while LINE
   close(FILE);
   $barcodes_mixedcase;
-}                                       # readbarcodes_mixedcase
+}                                       # readbarcodes
 
 sub mixedcase2upper { 
   ## utility function to convert the mixed case hash (which is used for the mismatch regular expressions) to an uppercased
@@ -66,7 +67,7 @@ sub convert2mismatchREs {
 ## (i.e. regexps), lowercase letters (if any) are uppercased and the
 ## regexp does not allow these letters to mismatch.
 
-  my $args = ref $_[0] eq 'HASH' ? shift : {@_}; # args: barcodes, allowed
+  my $args = ref $_[0] eq 'HASH' ? shift : {@_}; # args: barcodes, allowed_mismatches
   my $o=Regexp::Optimizer->new;
 
   my $mm_REs={};
@@ -78,6 +79,30 @@ sub convert2mismatchREs {
   }                                     # for $code
   $mm_REs;  
 }                                       # convert2mismatchREs
+
+sub get_mismatchREs {
+  ### set up array of regexp for increasing numbers of mismatches, to be
+  ### tested in turn.  They are to be tested in turn. Element 0
+  ### (corresponding to 'no mismatches') is deliberately left undefined
+  ### to avoid confusion
+
+  my $args = ref $_[0] eq 'HASH' ? shift : {@_};
+  my ($barcodes, $max_mismatches)= map {$args->{$_}} qw(barcodes max_mismatches);
+
+  return undef if ($max_mismatches==0);
+
+  my $mismatch_REs=[]; 
+  $#{$mismatch_REs}= ($max_mismatches);
+
+  for(my $i=1; $i<=$max_mismatches; $i++) { 
+    my $re= mismatch::convert2mismatchREs(barcodes=>$barcodes, 
+                                          allowed_mismatches =>$i);
+    ## eg. $h->{'AGCGTT') =>  REGEXP(0x25a7788)
+    $mismatch_REs->[$i]=$re;
+  }
+  $mismatch_REs;
+}                                       # get_mismatchREs
+
 
 sub rescue { 
   ### return the barcode without mismatches (not its ID!)
@@ -167,5 +192,177 @@ sub getversion {
   $version='UNKNOWN' unless $version;
   $version;
 }                                       # getversion
+
+sub commafy {
+  # insert comma's to separate powers of 1000
+  my($i)=@_;
+  my $r = join('',reverse(split('',$i)));
+  $r =~ s/(\d{3})/$1,/g;
+  $r =~ s/,$//;
+  join('',reverse(split('',$r)));
+}
+
+sub demultiplex {
+  my $args = ref $_[0] eq 'HASH' ? shift : {@_};
+  my ($type, $input, $outputs, $barcodes, $mismatch_REs, $groups, $barcode_re)=
+      map {$args->{$_}} qw(type input outputs barcodes mismatch_REs groups barcode_re);
+
+  die "unknown type '$type', must be fastq or bam" if ($type ne 'fastq' && $type ne 'bam');
+  
+  my($nexact, $nunknown, $nrescued); 
+  my($nrefseqs, $warned);               # only used for bam
+
+  my $filehandles=$outputs;
+
+RECORD:
+  while(1) { 
+    my $foundcode;                      
+    my $record=<$input>;
+    ## ($foundcode and $record are the only two variables needed)
+    if ($type eq 'fastq') { 
+      ### e.g.:  ^@NS500413:172:HVFHWBGXX:1:11101:4639:1062 1:N:0:CCGTCCAT$
+      $foundcode=(split(':', $record))[-1];
+      $foundcode =~ s/[\n\r]*$//;
+      $record .= <$input>; # sequence line
+      $record .= <$input>; # '+'
+      $record .= <$input>; # quality line
+    } else { 
+      ### sam file, header line:
+      if ($record =~ /^@/) {                # header line, needed by all files
+        for my $lib (keys %$filehandles) { 
+          $filehandles->{$lib}->print($record);
+        }
+        $nrefseqs += ($record =~ /^\@SQ/);
+        next RECORD;
+      }
+      ### @@@FIX: at this point we should insert add a @PG record to the bam headers ...
+
+      if ( $nrefseqs ==0 && !$warned++ ) {
+        warn "*** expected to find reference sequences in the sam headers (the \@SQ records)\n";
+        warn "*** be sure to use output from samtools -h\n";
+      } 
+      ## else: sam file, read line:
+## e.g. ^NS500413:188:H3M3WBGXY:1:11101:10124:1906:cbc=TACCTGTC:umi=TTCGAC \t 0 \t GLUL__chr1 \t 3255 \t 25 \t 76M \t 
+      my($qname,$flag, $rname, $pos, $mapq, $cigar, $rnext, $pnext, $tlen,
+         $seq, $qual, @optionals)=split("\t", $record);
+      
+      for my $part (split(":", $qname)) {
+        $foundcode=$1 if $part =~ $barcode_re;
+      }
+      die "could not find barcode in QNAME '$qname', expected /$barcode_re/, line $." unless $foundcode;
+    }
+    ### at this point we need and have just $foundcode and $record
+    my $lib;
+  CASE:
+    while(1) {
+      $lib=$barcodes->{$foundcode};       # majority of cases
+      if ($lib) {
+        $nexact++;
+        last CASE;
+      }
+      if (! $mismatch_REs) {
+        $nunknown++;
+        $lib='UNKNOWN';
+        last CASE;
+      }
+      my $correction;
+      my $i;
+    TRY:
+      for($i=1; $i < @$mismatch_REs; $i++) { 
+        $correction=mismatch::rescue($foundcode, $mismatch_REs->[$i]);
+        last TRY if $correction;
+      }
+      if($correction) {
+        $lib=$barcodes->{$correction};
+        $nrescued++;
+        last CASE;
+      } else { 
+        $nunknown++;
+        $lib='UNKNOWN';
+        last CASE;
+      }
+      die "should not reach this point";
+    }                                     # CASE
+    $lib= $groups->{$lib} if $groups;
+    $lib = 'UNKNOWN' unless $lib;
+
+    $filehandles->{$lib}->print($record);
+    last RECORD if ( $input->eof() || !$record );
+  }                                       # RECORD
+  {nexact=>$nexact, nrescued=>$nrescued, nunknown=>$nunknown};
+}                                         # sub demultiplex
+
+sub open_infile {
+  die "not used nor tested";
+  my($file)=@_;
+  my $fh=FileHandle->new();
+  if ($file =~ /\.gz/) { 
+    $fh->open("zcat $file | ", "r")  or die "'$file': $!";
+  } else { 
+    $fh->open("< $file")  or die "'$file': $!";
+  }
+  $fh;
+}
+
+sub close_infile {
+  die "not used nor tested";
+}
+
+sub open_outfiles { 
+  my $args = ref $_[0] eq 'HASH' ? shift : {@_};
+  my ($outdir, $prefix, $type, $files)=map {$args->{$_}} qw(outdir prefix type files);
+  my(@libs)=@$files;
+  my $fhs={};
+
+  die "Output directory $outdir: $!" if ($outdir && !(-d $outdir && -w $outdir));
+
+  for my $lib (@libs) { 
+    my $name;
+    my $fh;
+    if ($type =~ /fastq/) {
+      $name=sprintf("%s.fastq.gz", $lib);
+      $name="$prefix$name" if $prefix;
+      $name="$outdir/$name" if $outdir;
+      $fh = FileHandle->new("| gzip -n > $name");
+    } elsif ($type eq 'bam' ) { 
+      $name=sprintf("%s.bam", $lib);
+      $name="$prefix$name" if $prefix;
+      $name="$outdir/$name" if $outdir;
+      $fh = FileHandle->new(" | samtools view - -h -b > $name");
+    } else { 
+      die "open_outfiles: unknown type '$type' requested";
+    }
+    die "library $lib, file $name: $!" unless $fh;
+    warn "Creating/overwriting file $name ...\n";
+    $fhs->{$lib}=$fh;
+  }
+  $fhs;
+}                                       # open_outfiles
+
+sub close_outfiles {
+  my($fhs)=@_;
+  for my $lib (keys %$fhs) {
+    $fhs->{$lib}->close() or die "could not close (or open?) demultiplexed bam file for library $lib; investigate";
+  }
+}
+
+sub read_groups { 
+  #return hash mapping barcode to group
+  my($file)=@_;
+  open(FILE, $file) || die "$0: $file: $!";
+  my $groups={};
+
+  while(<FILE>) { 
+    s/#.*//;
+    s/[\r\n]*$//;
+    next unless /\S+\s+\S+/;
+    my($barcode,$group)=split(' ',$_);
+    die "barcode $barcode not unique in group file $file, line $.," if $groups->{$barcode};
+    $groups->{$barcode}=$group;
+  }
+  close(FILE);
+  $groups;
+}                                       # sub read_group
+
 
 1;
