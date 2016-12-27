@@ -261,7 +261,7 @@ RECORD:
       $lib=$barcodes->{$foundcode};       # majority of cases
       if ($lib) {
         $nexact++;
-        $statsperbarcode->{$lib}->[0]++;
+        $statsperbarcode->{$foundcode}->[0]++;
         last CASE;
       }
       if (! $mismatch_REs) {
@@ -379,13 +379,13 @@ sub print_statsperbarcode {
   foreach my $code (keys %$barcodes) { 
     my $id=$barcodes->{$code};
     my $nexact=$stats->{$code}->[0] || 0;
-    print "$id ($code):\t$nexact\t"; 
+    print OUT "$id ($code):\t$nexact\t"; 
   I:
-    for(my $i=1; $i<$max_mismatches; $i++) { 
+    for(my $i=1; $i<=$max_mismatches; $i++) { 
       my $n=$stats->{$code}->[$i] || 0;
       print OUT mismatch::commafy($n) . "\t";
     }
-    print "\n";
+    print OUT "\n";
   }                                     # CODE
   close(OUT);
 }
