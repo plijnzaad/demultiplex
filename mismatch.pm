@@ -222,9 +222,9 @@ RECORD:
       ### e.g.:  ^@NS500413:172:HVFHWBGXX:1:11101:4639:1062 1:N:0:CCGTCCAT$
       $foundcode=(split(':', $record))[-1];
       $foundcode =~ s/[\n\r]*$//;
-      $record .= <>; # sequence line
-      $record .= <>; # '+'
-      $record .= <>; # quality line
+      $record .= <$input>; # sequence line
+      $record .= <$input>; # '+'
+      $record .= <$input>; # quality line
     } else { 
       ### sam file, header line:
       if ($record =~ /^@/) {                # header line, needed by all files
