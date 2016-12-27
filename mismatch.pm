@@ -209,7 +209,7 @@ sub demultiplex {
 
   die "unknown type '$type', must be fastq or bam" if ($type ne 'fastq' && $type ne 'bam');
   
-  my($nexact, $nunknown, $nrescued); 
+  my($nexact, $nunknown, $nrescued, $statspercode); 
   my($nrefseqs, $warned);               # only used for bam
 
   my $filehandles=$outputs;
@@ -274,7 +274,8 @@ RECORD:
       }
       if($correction) {
         $lib=$barcodes->{$correction};
-        $nrescued++;
+        $nrescued->[$i]++;
+        $statspercode->[$i]->{$correction}++;
         last CASE;
       } else { 
         $nunknown++;
@@ -289,7 +290,7 @@ RECORD:
     $filehandles->{$lib}->print($record);
     last RECORD if ( $input->eof() || !$record );
   }                                       # RECORD
-  {nexact=>$nexact, nrescued=>$nrescued, nunknown=>$nunknown};
+  {nexact=>$nexact, nrescued=>$nrescued, nunknown=>$nunknown, $statspercode};
 }                                         # sub demultiplex
 
 sub open_infile {
