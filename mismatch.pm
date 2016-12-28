@@ -209,11 +209,12 @@ sub demultiplex {
 
   die "unknown type '$type', must be fastq or bam" if ($type ne 'fastq' && $type ne 'bam');
   
-  my($nexact, $nunknown, $nrescued, $statsperbarcode); 
+  my($nexact, $nunknown, $nrescued, $statsperbarcode, $statspermm); 
   my($nrefseqs, $warned);               # only used for bam
 
   foreach my $code (keys %$barcodes )  { 
     $statsperbarcode->{$code}=[];
+    $statspermm->{$code}={};
   }
   my $filehandles=$outputs;
 
@@ -280,6 +281,7 @@ RECORD:
         $lib=$barcodes->{$correction};
         $nrescued->[$nmismatches]++;
         $statsperbarcode->{$correction}->[$nmismatches]++;
+        $statspermm->{$correction}->{$foundcode}++;
         last CASE;
       } else { 
         $nunknown++;
@@ -294,7 +296,8 @@ RECORD:
     $filehandles->{$lib}->print($record);
     last RECORD if ( $input->eof() || !$record );
   }                                       # RECORD
-  {nexact=>$nexact, nrescued=>$nrescued, nunknown=>$nunknown, statsperbarcode=>$statsperbarcode};
+  {nexact=>$nexact, nrescued=>$nrescued, nunknown=>$nunknown, 
+   statsperbarcode=>$statsperbarcode, statspermm=>$statspermm};
 }                                         # sub demultiplex
 
 sub open_infile {
@@ -371,14 +374,18 @@ sub read_groups {
 
 sub print_statsperbarcode { 
   my $args = ref $_[0] eq 'HASH' ? shift : {@_}; # args: file, stats, max_mismatches, barcodes
-  my ($file, $stats, $max_mismatches, $barcodes)= map {$args->{$_}} qw(file stats max_mismatches barcodes);
+  my ($stats, $mismatches, $max_mismatches, $barcodes)= 
+      map {$args->{$_}} qw(stats mismatches max_mismatches barcodes);
 
+  ## overall stats:
+  my $file="counts-overall.txt";
+  warn "Creating file $file ...\n";
   open(OUT, "> $file")  || die "$file: $!";
   my $plain="exact\t" . join("\t", map { "${_}mm"; } 1..$max_mismatches);
   my $perc="%exact\t" . join("\t", map { "%".$_."mm"; } 1..$max_mismatches);
   print OUT "#id\tcode\t$plain\t$perc\n";
  CODE:
-  foreach my $code (keys %$barcodes) { 
+  foreach my $code (sort keys %$barcodes) { 
     my $id=$barcodes->{$code};
     my $nexact=$stats->{$code}->[0] || 0;
     print OUT "$id\t$code\t$nexact\t"; 
@@ -400,5 +407,22 @@ sub print_statsperbarcode {
     print OUT "\n";
   }                                     # CODE
   close(OUT);
-}
+
+  ### now per mismatch
+  $file="counts-permismatch.txt";
+  warn "Creating file $file ...\n";
+  open(OUT, "> $file")  || die "$file: $!";
+  print OUT "#id\tbarcode\tmismatched barcodes with counts\n";
+CODE:
+  foreach my $code (sort keys %$barcodes) { 
+    my $id=$barcodes->{$code};
+    print OUT "$id\t$code\t";
+    my $mms=$mismatches->{$code};
+    for my $m (sort keys %$mms) {
+      print OUT format_mm($code, $m) . ": $mms->{$m}\t";
+    }
+    print OUT "\n";
+  }                                     # CODE
+  close(OUT);
+}                                       # sub print_statsperbarcode
 1;
