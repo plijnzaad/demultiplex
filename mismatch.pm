@@ -374,16 +374,28 @@ sub print_statsperbarcode {
   my ($file, $stats, $max_mismatches, $barcodes)= map {$args->{$_}} qw(file stats max_mismatches barcodes);
 
   open(OUT, "> $file")  || die "$file: $!";
-  print OUT "#id\tcode\texact\t" . join("\t", map { "${_}mm"; } 1..$max_mismatches) . "\n";
+  my $plain="exact\t" . join("\t", map { "${_}mm"; } 1..$max_mismatches);
+  my $perc="%exact\t" . join("\t", map { "%".$_."mm"; } 1..$max_mismatches);
+  print OUT "#id\tcode\t$plain\t$perc\n";
  CODE:
   foreach my $code (keys %$barcodes) { 
     my $id=$barcodes->{$code};
     my $nexact=$stats->{$code}->[0] || 0;
     print OUT "$id\t$code\t$nexact\t"; 
+    my $total=$nexact;
+
   I:
     for(my $i=1; $i<=$max_mismatches; $i++) { 
       my $n=$stats->{$code}->[$i] || 0;
       print OUT mismatch::commafy($n) . "\t";
+      $total += $n;
+    }
+    ## now percentages:
+    printf OUT "%.1f\t", 100*$nexact/$total;
+  I:
+    for(my $i=1; $i<=$max_mismatches; $i++) { 
+      my $n=$stats->{$code}->[$i] || 0;
+      printf OUT "%4.1f\t", 100*$n/$total . "\t";
     }
     print OUT "\n";
   }                                     # CODE
