@@ -374,12 +374,12 @@ sub print_statsperbarcode {
   my ($file, $stats, $max_mismatches, $barcodes)= map {$args->{$_}} qw(file stats max_mismatches barcodes);
 
   open(OUT, "> $file")  || die "$file: $!";
-
+  print OUT "#id\tcode\texact\t" . join("\t", map { "${_}mm"; } 1..$max_mismatches) . "\n";
  CODE:
   foreach my $code (keys %$barcodes) { 
     my $id=$barcodes->{$code};
     my $nexact=$stats->{$code}->[0] || 0;
-    print OUT "$id ($code):\t$nexact\t"; 
+    print OUT "$id\t$code\t$nexact\t"; 
   I:
     for(my $i=1; $i<=$max_mismatches; $i++) { 
       my $n=$stats->{$code}->[$i] || 0;
