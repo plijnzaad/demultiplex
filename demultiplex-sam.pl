@@ -9,6 +9,8 @@ use mismatch;
 
 use vars qw($opt_h $opt_b $opt_m $opt_p $opt_o $opt_e $opt_g);
 
+die "this file needs attention, big changes (to demultiplex-fastq and mismatch.pm) since 22 nov 2016";
+
 my $version=mismatch::getversion($0);
 my @args=@ARGV;
 
