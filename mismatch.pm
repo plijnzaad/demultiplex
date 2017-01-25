@@ -19,6 +19,7 @@ sub readbarcodes {
   my $barcodes_mixedcase = {};
   my $uppercase_codes={};
   my $len=undef;
+  my $nlowercase=0;
 
   open(FILE, "$file") or die "Barcode '$file': $!";
 LINE:
@@ -38,14 +39,15 @@ LINE:
     die "Barcode $code  does not match /^[ACGT]{3,12}$/i, file $file, line $." unless $code =~ /^[ACGT]{3,12}$/i;
     # (3,12 are a wild guess at sanity)
 
-    warn "barcode $barcodeid contains lower case letters, these will be uppercased and will not be allowed to mismatch" 
-        if $code =~ /[a-z]/ ;
+    $nlowercase += ($code =~ /[a-z]/) ;
 
     die "Barcode id '$barcodeid' not unique" if $barcodeids->{$barcodeid}++;
     die "Barcode '$code' not unique" if $uppercase_codes->{"\U$code"}++;
     $barcodes_mixedcase->{$code}=$barcodeid;
   }                                     # while LINE
   close(FILE);
+  warn "Found $nlowercase barcodes containing lower case letters. These will be uppercased and will not be allowed to mismatch at the lowercased positions" 
+      if $nlowercase;
   $barcodes_mixedcase;
 }                                       # readbarcodes
 
@@ -168,7 +170,7 @@ sub _getmismatch_REs {
       my $mm=join("", @mm);
       for my $i (0 .. $#fixed) { 
         if ($fixed[$i] eq '!' && $mm[$i] eq '.') { 
-          warn "regexp $mm conflicts with a fixed position, skipped\n";
+          ## warn "regexp $mm_re conflicts with a fixed position, skipped\n";
           next COMB;
         }
       }

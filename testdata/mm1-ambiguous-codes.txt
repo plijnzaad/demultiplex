@@ -1,7 +1,7 @@
 ## this file is an example of codes that are not distant enough to allow
 ## matching with one mismatch. Run check-barcodes.pl with the -o option
 ## to make them unique
-c1	TCCCTAGA
+c1	TCCCTAGa
 c2	TACTGCTG
 c3	CTGACTGT
 c4	CAGCGATT
