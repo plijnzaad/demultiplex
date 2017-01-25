@@ -162,19 +162,21 @@ sub _getmismatch_REs {
 
   ## set up array of arrays with '.' where to do the replacements:
   for(my $i=0; $i<$max_mm; $i++) { 
-    my @combs = combine(($i+1), 0..$#code);
+    ## set up all possible combinations of mismatch positions (usually just 1, since max_mm usually 1)
+    my @pos_sets = combine(($i+1), 0..$#code);
   COMB:
-    foreach my $comb ( @combs ) { 
+    foreach my $pos_set ( @pos_sets ) { 
+      ## replace the mismatch positions with '.' using splicing (yay)
       my @mm=@code;
-      @mm[ @$comb ] = split(//, '.' x int(@$comb) ); # yay, splicing
-      my $mm=join("", @mm);
+      @mm[ @$pos_set ] = split(//, '.' x int(@$pos_set) ); 
+      my $mm_re=join("", @mm);
       for my $i (0 .. $#fixed) { 
         if ($fixed[$i] eq '!' && $mm[$i] eq '.') { 
           ## warn "regexp $mm_re conflicts with a fixed position, skipped\n";
           next COMB;
         }
       }
-      push(@mmcodes, $mm);
+      push(@mmcodes, $mm_re);
     }
   }
   @mmcodes;
