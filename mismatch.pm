@@ -429,4 +429,19 @@ CODE:
   }                                     # CODE
   close(OUT);
 }                                       # sub print_statsperbarcode
+
+sub umi_mismatches { 
+  my($umis)=@_;
+  
+  my $n=0;
+  my $len=int(@$umis);
+  for(my $i=0; $i<$len; $i++) { 
+    for(my $j=$i+1; $j<$len; $j++) {
+      my $h=hammingdist($umis->[$i],  $umis->[$j]);
+      $n += ($h==1);
+    }
+  }
+  $n;
+}
+
 1;
