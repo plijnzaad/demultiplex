@@ -431,17 +431,23 @@ CODE:
 }                                       # sub print_statsperbarcode
 
 sub umi_mismatches { 
-  my($umis)=@_;
+  my($umis, $umi_hash)=@_;
   
   my $n=0;
   my $len=int(@$umis);
-  for(my $i=0; $i<$len; $i++) { 
+  for(my $i=0; $i<$len; $i++) {
+    my $one = $umis->[$i];
+    my $i_singleton=($umi_hash->{$one}==1);
+  J:
     for(my $j=$i+1; $j<$len; $j++) {
+      my $other =$umis->[$j];
+      ### only test hamming if exactly one of umis is singleton
+      next J unless $i_singleton + ($umi_hash->{$other}==1) == 1;
       my $h=hammingdist($umis->[$i],  $umis->[$j]);
-      $n += ($h==1);
+      $n += ($h==1); # if 
     }
   }
   $n;
-}
+}                                       # umi_mismatches
 
 1;
