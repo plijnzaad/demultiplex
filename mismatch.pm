@@ -194,13 +194,23 @@ sub hammingdist {
 }
 
 sub getversion {
+  # usage: my $version = getversion($0);
   my($path)=@_;
   my ($fullpath)=`which $path`;
   my ($script,$dir) = fileparse($fullpath);
-  my $version=`cd $dir && git describe --match 'v[0-9]*' --tags --dirty`;
+  chomp($script);
+  my $ls=`cd $dir 2>/dev/null && git ls-files $script 2>/dev/null`;
+  chomp($ls);
+  return "NOT_UNDER_VERSION_CONTROL" if ($ls ne $script);
+  my $branch=`cd $dir 2>/dev/null && git rev-parse --abbrev-ref HEAD`;
+  chomp($branch);
+  my $version=`cd $dir 2>/dev/null && git describe --match 'v[0-9]*' --tags --dirty --always 2> /dev/null`;
   chomp($version);
+  $version =~ s/-(\d+)-g([a-f0-9]+)/-$1-$2/;  ##  trash the silly 'g' prefix, only confuses things
   $version='UNKNOWN' unless $version;
-  $version;
+  ## my $timestamp = `git log -1   --date=iso 2>/dev/null | sed -n '/^Date:/{s/Date: *//;s/ /_/g;p;}' 2>/dev/null `;
+  ## chomp($timestamp);
+  "$branch:$version";
 }                                       # getversion
 
 sub commafy {
