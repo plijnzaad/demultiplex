@@ -14,6 +14,7 @@ sub readbarcodes {
   ## utility function to read barcodes, returns hash with eg. $barcodes->{'AGCGtT') => 'M3' }
   ## Note that lower case letters (used for disallowing specific mismatches) are
   ## still there (and won't match actual barcodes).
+  ## expects a barcode ID and sequence (3-12 nt long) on a single line separated by a single tab
   my ($file)=@_;
   my $barcodeids={};
   my $barcodes_mixedcase = {};
@@ -24,10 +25,10 @@ sub readbarcodes {
   open(FILE, "$file") or die "Barcode '$file': $!";
 LINE:
   while(<FILE>) {
-    s/[\n\r]*$//g;
+    chomp;
     s/#.*//;
     next LINE unless $_;
-    my ($barcodeid, $code)=split(' ');  # e.g. 'G7 \t CCAACAAT'
+    my ($barcodeid, $code)=split("\t",$_);  # e.g. 'G7 \t CCAACAAT'
     my $l=length($code);
 
     if ( defined($len) && $l != $len) { 
@@ -35,8 +36,8 @@ LINE:
     } else {
       $len=$l;
     }
-
-    die "Barcode $code  does not match /^[ACGT]{3,12}$/i, file $file, line $." unless $code =~ /^[ACGT]{3,12}$/i;
+    my $regexp='^[ACGT]{3,12}$';
+    die "Barcode $code  does not match /$regexp/i, file $file, line $." unless $code =~ /$regexp/i;
     # (3,12 are a wild guess at sanity)
 
     $nlowercase += ($code =~ /[a-z]/) ;
@@ -61,9 +62,9 @@ sub mixedcase2upper {
 }
 
 sub convert2mismatchREs {
-## takes hash with barcodes (e.g. $h->{'AGCGtT') => 'M3' ) and returns
-## e.g. $h->{'AGCGTT') => REGEXP(0x25a7788). The resulting map only
-## contains uppercase barcodes, as this is needed for mapping it to the
+## takes hash with barcodes (e.g. $h->{'AGCGtT') => 'M3' ) and the allowed number of mismatches
+## returns per barcode the mismatch regular expresson e.g. $h->{'AGCGTT') => REGEXP(0x25a7788)
+## The resulting map only contains uppercase barcodes, as this is needed for mapping it to the
 ## output file.  The hash returned contains, per barcode, one regexp
 ## representing all possible mismatches of that barcode.  In the values
 ## (i.e. regexps), lowercase letters (if any) are uppercased and the
@@ -148,7 +149,7 @@ sub _getmismatch_REs {
   my($code, $max_mm)=@_;
 
   return () if ! $max_mm;
-
+  ##mark the fixed positons with !
   my @fixed = ();
   if ($code =~ /[a-z]/)  {
     my $fixed= $code;
@@ -156,17 +157,17 @@ sub _getmismatch_REs {
     @fixed = split(//, $fixed);
     $code = "\U$code";
   }
-
   my @mmcodes=();
   my(@code)=split(//, $code);
 
   ## set up array of arrays with '.' where to do the replacements:
-  for(my $i=0; $i<$max_mm; $i++) { 
+  for(my $i=1; $i<=$max_mm; $i++) { 
     ## set up all possible combinations of mismatch positions (usually just 1, since max_mm usually 1)
-    my @pos_sets = combine(($i+1), 0..$#code);
+    ## combine (Math::Combinatorics) returns all unique unordered combinations of $i mismatch positions in a set of length($code) barcode positions 
+    my @pos_sets = combine($i, 0..$#code);
   COMB:
     foreach my $pos_set ( @pos_sets ) { 
-      ## replace the mismatch positions with '.' using splicing (yay)
+      ## replace the mismatch positions with '.' (regexp for "any character") using splicing (yay)
       my @mm=@code;
       @mm[ @$pos_set ] = split(//, '.' x int(@$pos_set) ); 
       my $mm_re=join("", @mm);
@@ -229,6 +230,8 @@ RECORD:
     ## ($foundcode and $record are the only two variables needed)
     if ($type eq 'fastq') { 
       ### e.g.:  ^@NS500413:172:HVFHWBGXX:1:11101:4639:1062 1:N:0:CCGTCCAT$
+      ### this code will NOT work for FASTQ file produced by Casava < 1.8 see https://en.wikipedia.org/wiki/FASTQ_format
+      ### descriptions used in FASTQ files from NCBI/EBI will end up in $foundcode 
       $foundcode=(split(':', $record))[-1];
       $foundcode =~ s/[\n\r]*$//;
       $record .= <$input>; # sequence line
@@ -360,13 +363,15 @@ sub close_outfiles {
 
 sub read_groups { 
   #return hash mapping barcode to group
+  #expects per line a space separated barcode Id and group
   my($file)=@_;
   open(FILE, $file) || die "$0: $file: $!";
   my $groups={};
 
   while(<FILE>) { 
     s/#.*//;
-    s/[\r\n]*$//;
+    #s/[\r\n]*$//;
+    chomp;
     next unless /\S+\s+\S+/;
     my($barcode,$group)=split(' ',$_);
     die "barcode $barcode not unique in group file $file, line $.," if $groups->{$barcode};
