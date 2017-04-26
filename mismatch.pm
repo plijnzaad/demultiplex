@@ -204,7 +204,7 @@ sub getversion {
   $version='UNKNOWN' unless $version;
   ## my $timestamp = `git log -1   --date=iso 2>/dev/null | sed -n '/^Date:/{s/Date: *//;s/ /_/g;p;}' 2>/dev/null `;
   ## chomp($timestamp);
-  "$branch:$version";
+  $branch.'_'.$version;
 }                                       # getversion
 
 sub commafy {
