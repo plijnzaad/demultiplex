@@ -31,7 +31,6 @@ mismatched code is exactly halfway between two exact barcodes).
 The script barcode-check.pl can be used to check for clashed between
 barcodes with mismatches.
 
-
 ## Using the code
 
 To start using it, do 
@@ -40,8 +39,17 @@ To start using it, do
 
 This will create a directory `demultiplex`. Make sure that directory is
 on your `$PATH`.  If you use the `mismatch.pm` library, make sure that
-directory is part of your `$PERLLIB`.  To get a usage message on a
-script, run it script with an `-h` flag.
+directory is part of your `$PERLLIB`. The easiest way is to copy the
+`env.sh.example` script to e.g. `env.sh`, adjust its contents, and
+source (using `source env.sh` or `. env.sh`) it prior to running the
+scripts or using the library. For a testrun, do e.g.
+
+`
+$ mkdir testoutput
+$ ./demultiplex-fastq.pl -m 2 -b testdata/testbarcodes.txt -o testoutput  < testdata/nomismatches.fastq 
+
+`
+To get a usage message on a script, run the script with an `-h` flag.
 
 This code used to reside in https://plijnzaad@github.com/plijnzaad/phtools, subdirectory `ngs/demultiplex`
 
