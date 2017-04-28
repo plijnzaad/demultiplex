@@ -35,7 +35,9 @@ barcodes with mismatches.
 
 To start using it, do 
 
-`  git clone https://github.com/plijnzaad/demultiplex.git`
+```
+$ git clone https://github.com/plijnzaad/demultiplex.git
+```
 
 This will create a directory `demultiplex`. Make sure that directory is
 on your `$PATH`.  If you use the `mismatch.pm` library, make sure that
@@ -44,11 +46,10 @@ directory is part of your `$PERLLIB`. The easiest way is to copy the
 source (using `source env.sh` or `. env.sh`) it prior to running the
 scripts or using the library. For a testrun, do e.g.
 
-`
+```
 $ mkdir testoutput
 $ ./demultiplex-fastq.pl -m 2 -b testdata/testbarcodes.txt -o testoutput  < testdata/nomismatches.fastq 
-
-`
+```
 To get a usage message on a script, run the script with an `-h` flag.
 
 This code used to reside in https://plijnzaad@github.com/plijnzaad/phtools, subdirectory `ngs/demultiplex`
