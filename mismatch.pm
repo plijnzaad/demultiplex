@@ -442,5 +442,13 @@ CODE:
   }                                     # CODE
   close(OUT);
 }                                       # sub print_statsperbarcode
+sub byletterandnumber { 
+  ## usage: @sorted = sort { mismatch::byletterandnumber($a,$b) }  @unsorted
+  my ($aa,$bb)=@_;
+  my($re)= qr/([A-Za-z_]*)([0-9]+)/; 
+  my ($Sa, $Na) = ($aa =~ $re); 
+  my ($Sb, $Nb) = ($bb =~ $re); 
+  ($Sa cmp $Sb) || ($Na <=>  $Nb); 
+}                                       # byletterandnumber
 1;
 
