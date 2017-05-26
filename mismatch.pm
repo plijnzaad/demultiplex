@@ -4,8 +4,6 @@
 ### Usage: see demultiplex-{fastq,sam}.pl
 package mismatch;
 
-### Usage: see demultiplex-{fastq,sam}.pl
-
 use strict;
 
 use Math::Combinatorics;
@@ -442,6 +440,36 @@ CODE:
   }                                     # CODE
   close(OUT);
 }                                       # sub print_statsperbarcode
+
+sub _open_fh {
+  # open file (for appending), or open stdout. Returns filehandle
+  my($fh)=@_;
+  if ($fh) { 
+    if(ref $fh) {
+      die "expected FileHandle" unless ref $fh eq 'FileHandle';
+    } else { 
+      warn "appending to file $fh ... ";
+      $fh = FileHandle->new(">> $fh") or die "$fh: $!";
+    }
+  } else { 
+    ## $fh= FileHandle->new_from_fd(1, ">"); # stdout
+    $fh= FileHandle->new("> -"); # stdout
+  }
+  $fh;
+}                                       # _open_fh
+
+sub invert_hash { 
+  ## go from $h->{CCTGCA}=> 'K13' to $h->{K13}=>'CCTGCA'
+  my($hash)=@_;
+  my $new={};
+
+  while( my($key,$val) = each %$hash) { 
+    die "cannot invert hash: val $val (key $key) is not unique " if defined($new->{$val});
+    $new->{$val}=$key;
+  }
+  $new;
+}                                       # invert_hash
+
 sub byletterandnumber { 
   ## usage: @sorted = sort { mismatch::byletterandnumber($a,$b) }  @unsorted
   my ($aa,$bb)=@_;
@@ -450,5 +478,25 @@ sub byletterandnumber {
   my ($Sb, $Nb) = ($bb =~ $re); 
   ($Sa cmp $Sb) || ($Na <=>  $Nb); 
 }                                       # byletterandnumber
+
+sub print_barcode_readgroups  {
+  # prints barcode readgroups to fh.
+  # If $fh is a string, opens that file and appends to it
+  # If $f is a filehandle, prints there
+  # If $f is undef, prints to stdout. 
+  # Unknown barcodes get RG:UNK
+  my($barcodes, $fh)=@_;
+
+  my $well2cbc=invert_hash $barcodes;
+  my @wells= sort { byletterandnumber($a,$b) } keys %$well2cbc;
+
+  $fh=_open_fh($fh);
+
+  foreach my $well (@wells) { 
+    print $fh "\@RG\tID:$well\tDS:$well2cbc->{$well}\n";
+  }
+  print $fh "\@RG\tID:UNK\tDS:unknown\n";
+}                                       # print_barcode_readgroups
+
 1;
 
