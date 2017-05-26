@@ -1,4 +1,7 @@
-
+## Package to handle demultiplexing with mismatches, also offering possibility to disallow mismatches in 
+## certain positions (useful when barcode library was wrongly designed).
+## Written by <plijnzaad@gmail.com>
+### Usage: see demultiplex-{fastq,sam}.pl
 package mismatch;
 
 ### Usage: see demultiplex-{fastq,sam}.pl
@@ -440,3 +443,4 @@ CODE:
   close(OUT);
 }                                       # sub print_statsperbarcode
 1;
+
